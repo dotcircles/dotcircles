@@ -376,6 +376,7 @@ pub mod pallet {
 		pub fn join_rosca(origin: OriginFor<T>, rosca_id: u32, position: Option<u32>) -> DispatchResult {
 
 			let signer = ensure_signed(origin)?;
+			ensure!(Self::active_roscas(rosca_id).is_none(), Error::<T>::RoscaAlreadyActive);
 			ensure!(Self::participants(rosca_id, &signer).is_none(), Error::<T>::AlreadyJoined);
 			ensure!(Self::invited_preverified_participants(rosca_id, &signer).is_some(), Error::<T>::NotInvited);
 			let pending_rosca = Self::rosca_details(rosca_id).ok_or(Error::<T>::RoscaNotFound)?;
@@ -437,6 +438,17 @@ pub mod pallet {
 			current_participant_count = current_participant_count.checked_sub(1).ok_or(Error::<T>::ArithmeticUnderflow)?;
 
 			RoscaParticipantsCount::<T>::insert(rosca_id, current_participant_count);
+
+			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).ok_or(0).unwrap();
+			if participant_deposit > 0 {
+				let rosca_account_id = Self::rosca_account_id(rosca_id);
+				T::NativeBalance::transfer(&rosca_account_id, &signer, participant_deposit.into(), Expendable)?;
+				RoscaSecurityDeposits::<T>::remove(rosca_id, &signer);
+				Self::deposit_event(Event::<T>::SecurityDepositClaimed {
+					rosca_id,
+					depositor: signer.clone()
+				});
+			}
 
 			Self::deposit_event(Event::<T>::LeftRosca {
 				rosca_id,
@@ -733,7 +745,7 @@ pub mod pallet {
 
 		#[pallet::call_index(6)]
 		pub fn claim_security_deposit(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
-			let signer = ensure_signed(origin)?;
+			let signer = ensure_signed(origin)?;	
 			let current_block = frame_system::Pallet::<T>::block_number();
 			let final_pay_by_block = Self::final_pay_by_block(rosca_id).ok_or(Error::<T>::FinalPayBlockNotFound)?;
 			ensure!(current_block > final_pay_by_block, Error::<T>::FinalPayByBlockMustBePast);
