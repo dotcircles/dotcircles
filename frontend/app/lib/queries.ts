@@ -35,6 +35,14 @@ export async function getActiveRoscasDetails(roscaId: any) {
   return data.toHuman();
 }
 
+export async function getEligibleRecipient(roscaId: any) {
+  const api = await getApi();
+
+  const data = await api.query.rosca.eligibleClaimant(roscaId);
+
+  return data.toHuman();
+}
+
 export async function getActiveRoscaParticipantsOrder(roscaId: any) {
   const api = await getApi();
 

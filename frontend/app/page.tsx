@@ -82,7 +82,7 @@ export default async function Home() {
           <RoscaDetailsTable rows={roscaRows} />
         </div>
       </section>
-      <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
+      <section className="flex flex-col items-center justify-center gap py-8 md:py-10">
         <div className="inline-block max-w-xl text-center justify-center">
           <div className={title()}>Active Circles</div>
         </div>

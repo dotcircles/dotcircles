@@ -72,6 +72,7 @@ export default async function Page({
           type={roscaDetails.randomOrder ? "Random" : "Fixed Order"}
           start={roscaDetails.startByBlock}
           contributionFrequency={roscaDetails.contributionFrequency}
+          contributionAmount={roscaDetails.contributionAmount}
           totalParticipants={roscaDetails.numberOfParticipants}
           minParticipants={roscaDetails.minimumParticipantThreshold}
         />
@@ -92,7 +93,8 @@ export default async function Page({
         <InvitedParticipantTable rows={displayRows} roscaId={roscaId} />
       </section>
 
-      <section className="pb-7">
+      <section className="pb-7 text-center">
+        <div className={title()}>Current Security Deposits</div>
         <SecurityDepositsTable rows={depositRows} roscaId={roscaId} />
       </section>
     </div>

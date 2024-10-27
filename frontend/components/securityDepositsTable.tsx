@@ -94,7 +94,7 @@ export default function SecurityDepositsTable({
       const extensions = await web3Enable("DOTCIRCLES");
       const acc = await web3FromAddress(myAddress);
 
-      const tx = api!.tx.rosca.addToSecurityDeposit(roscaId, 100);
+      const tx = api!.tx.rosca.addToSecurityDeposit(roscaId, 1000000000);
 
       const hash = await tx.signAndSend(myAddress, {
         signer: acc.signer,
@@ -134,7 +134,21 @@ export default function SecurityDepositsTable({
           </TableColumn>
         )}
       </TableHeader>
-      <TableBody items={newRows}>
+      <TableBody
+        items={newRows}
+        emptyContent={
+          <>
+            <div className="pb-7">No security deposits added so far...</div>
+            <Button
+              onClick={handleTopUp}
+              className={`bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg`}
+              radius="full"
+            >
+              Top Up
+            </Button>
+          </>
+        }
+      >
         {(item) => (
           <TableRow key={item.key}>
             {(columnKey) => (

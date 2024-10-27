@@ -211,7 +211,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 /// Existential deposit.
-pub const EXISTENTIAL_DEPOSIT: u128 = 1;
+pub const EXISTENTIAL_DEPOSIT: u128 = 10;
 
 impl pallet_balances::Config for Runtime {
 	type MaxLocks = ConstU32<50>;
