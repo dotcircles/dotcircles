@@ -68,7 +68,7 @@ export default function StartRoscaBtn({ roscaId, startable }: any) {
   return (
     <Button
       onClick={handleStart}
-      className={`w-6/12 text-white`}
+      className={`w-full text-white`}
       isDisabled={!startable}
       color={startable ? "success" : "default"}
     >

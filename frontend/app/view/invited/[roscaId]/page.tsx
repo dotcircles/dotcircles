@@ -78,7 +78,12 @@ export default async function Page({
       </section>
       <section className="pb-7 flex justify-center">
         <div>
-          <StartRoscaBtn roscaId={roscaId} startable={currentJoinCount} />
+          <StartRoscaBtn
+            roscaId={roscaId}
+            startable={
+              currentJoinCount >= roscaDetails.minimumParticipantThreshold
+            }
+          />
         </div>
       </section>
 
