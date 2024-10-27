@@ -22,6 +22,8 @@ import { Button } from "@nextui-org/button";
 import { Checkbox, CheckboxGroup } from "@nextui-org/checkbox";
 import { useEffect, useState } from "react";
 import { NameMap } from "@/app/lib/mock";
+import { toast, Toaster } from "sonner";
+import CreateToast from "./toasts/createToast";
 
 export default function CreateRosca() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure({
@@ -75,6 +77,17 @@ export default function CreateRosca() {
       return;
     }
 
+    let resolvePromise: any, rejectPromise: any;
+    const promise = new Promise((resolve, reject) => {
+      resolvePromise = resolve;
+      rejectPromise = reject;
+    });
+    toast.promise(promise, {
+      loading: "Loading...",
+      success: (toast): any => toast,
+      error: (message) => message,
+    });
+
     try {
       const extensions = await web3Enable("DOTCIRCLES");
       const acc = await web3FromAddress(myAddress);
@@ -90,11 +103,41 @@ export default function CreateRosca() {
         circleName
       );
 
-      const hash = await tx.signAndSend(myAddress, {
-        signer: acc.signer,
-        nonce: -1,
-      });
+      const unsub = await tx.signAndSend(
+        myAddress,
+        {
+          signer: acc.signer,
+          nonce: -1,
+        },
+        ({ events = [], status, txHash }) => {
+          console.log("Broadcasting create");
+          if (status.isFinalized) {
+            console.log("Tx finalize");
+            events.forEach(({ phase, event: { data, method, section } }) => {
+              console.log(`\t' ${phase}: ${section}.${method}:: ${data}`);
+            });
+            const roscaCreated = events.find(({ event }: any) =>
+              api!.events.rosca.RoscaCreated.is(event)
+            );
+            if (roscaCreated) {
+              let eventData = roscaCreated.event.data;
+              resolvePromise(
+                <CreateToast
+                  name={eventData[4].toHuman()}
+                  contributionAmount={eventData[1].toString()}
+                  contributionFrequency={eventData[2].toString()}
+                  randomOrder={eventData[3].toString()}
+                />
+              );
+            } else {
+              rejectPromise("Rosca creation failed");
+            }
+            unsub();
+          }
+        }
+      );
     } catch (error) {
+      rejectPromise(`Failed to submit extrinsic: ${error}`);
       console.error("Failed to submit extrinsic", error);
     }
   };

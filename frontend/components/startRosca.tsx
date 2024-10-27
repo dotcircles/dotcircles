@@ -12,6 +12,7 @@ import {
 
 import { Button } from "@nextui-org/button";
 import { redirect } from "next/navigation";
+import { toast } from "sonner";
 
 export default function StartRoscaBtn({ roscaId, startable }: any) {
   const [api, setApi] = useState<ApiPromise | null>(null);
@@ -50,6 +51,16 @@ export default function StartRoscaBtn({ roscaId, startable }: any) {
       console.log("API is not ready");
       return;
     }
+    let resolvePromise: any, rejectPromise: any;
+    const promise = new Promise((resolve, reject) => {
+      resolvePromise = resolve;
+      rejectPromise = reject;
+    });
+    toast.promise(promise, {
+      loading: "Loading...",
+      success: () => "Rosca started",
+      error: "Transaction failed",
+    });
 
     try {
       const extensions = await web3Enable("DOTCIRCLES");
@@ -57,10 +68,31 @@ export default function StartRoscaBtn({ roscaId, startable }: any) {
       // Replace with your actual extrinsic submission logic
       const tx = api!.tx.rosca.startRosca(roscaId);
 
-      const hash = await tx.signAndSend(myAddress, {
-        signer: acc.signer,
-        nonce: -1,
-      });
+      const unsub = await tx.signAndSend(
+        myAddress,
+        {
+          signer: acc.signer,
+          nonce: -1,
+        },
+        ({ events = [], status, txHash }) => {
+          console.log("Broadcasting create");
+          if (status.isFinalized) {
+            console.log("Tx finalize");
+            events.forEach(({ phase, event: { data, method, section } }) => {
+              console.log(`\t' ${phase}: ${section}.${method}:: ${data}`);
+            });
+            const roscaStarted = events.find(({ event }: any) =>
+              api!.events.rosca.RoscaStarted.is(event)
+            );
+            if (roscaStarted) {
+              resolvePromise();
+            } else {
+              rejectPromise();
+            }
+            unsub();
+          }
+        }
+      );
     } catch (error) {
       console.error("Failed to submit extrinsic", error);
     }

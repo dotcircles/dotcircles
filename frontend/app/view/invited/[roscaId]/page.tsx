@@ -14,6 +14,7 @@ import { Avatar } from "@nextui-org/avatar";
 import { redirect } from "next/navigation";
 import { title } from "@/components/primitives";
 import { createDepositRows } from "@/app/lib/helpers";
+import { Toaster } from "sonner";
 
 export default async function Page({
   params,

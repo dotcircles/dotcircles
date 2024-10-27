@@ -8,6 +8,7 @@ import { Providers } from "./providers";
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: {
@@ -58,6 +59,7 @@ export default function RootLayout({
                 <p className="text-primary">NextUI</p>
               </Link>
             </footer>
+            <Toaster richColors />
           </div>
         </Providers>
       </body>

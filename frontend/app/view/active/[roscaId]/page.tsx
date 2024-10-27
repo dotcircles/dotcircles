@@ -14,7 +14,6 @@ import RoscaInfo from "@/components/detailsBlock";
 import InvitedParticipantTable from "@/components/invitedParticipants";
 
 import SecurityDepositsTable from "@/components/securityDepositsTable";
-import StartRoscaBtn from "@/components/startRosca";
 import { Avatar } from "@nextui-org/avatar";
 import { redirect } from "next/navigation";
 

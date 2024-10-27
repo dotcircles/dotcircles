@@ -12,6 +12,8 @@ import {
 
 import { Button } from "@nextui-org/button";
 import { redirect } from "next/navigation";
+import { Toaster, toast } from "sonner";
+import Error from "next/error";
 
 export default function ContributeRoscaBtn({ roscaId }: any) {
   const [api, setApi] = useState<ApiPromise | null>(null);
@@ -51,26 +53,59 @@ export default function ContributeRoscaBtn({ roscaId }: any) {
       return;
     }
 
+    let resolvePromise: any, rejectPromise: any;
+    const promise = new Promise((resolve, reject) => {
+      resolvePromise = resolve;
+      rejectPromise = reject;
+    });
+    toast.promise(promise, {
+      loading: "Loading...",
+      success: () => "Contribution successful",
+      error: "Transaction failed",
+    });
+
     try {
       const extensions = await web3Enable("DOTCIRCLES");
       const acc = await web3FromAddress(myAddress);
       // Replace with your actual extrinsic submission logic
       const tx = api!.tx.rosca.contributeToRosca(roscaId);
 
-      const hash = await tx.signAndSend(myAddress, {
-        signer: acc.signer,
-        nonce: -1,
-      });
+      const unsub = await tx.signAndSend(
+        myAddress,
+        {
+          signer: acc.signer,
+          nonce: -1,
+        },
+        ({ events = [], status, txHash }) => {
+          console.log("Broadcasting contribution");
+
+          if (status.isFinalized) {
+            console.log("Tx finalize");
+            const contributionMade = events.find(({ event }: any) =>
+              api!.events.rosca.ContributionMade.is(event)
+            );
+            if (contributionMade) {
+              resolvePromise();
+            } else {
+              rejectPromise();
+            }
+            unsub();
+          }
+        }
+      );
     } catch (error) {
+      rejectPromise(`Failed to submit extrinsic: ${error}`);
       console.error("Failed to submit extrinsic", error);
     }
   };
   return (
-    <Button
-      onClick={handleContribute}
-      className={`w-6/12 text-white bg-fuchsia-400`}
-    >
-      "Contribute"
-    </Button>
+    <>
+      <Button
+        onClick={handleContribute}
+        className={`w-6/12 text-white bg-fuchsia-400`}
+      >
+        "Contribute"
+      </Button>
+    </>
   );
 }
