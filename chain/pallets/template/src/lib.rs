@@ -178,23 +178,64 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A Rosca Created
-		// RoscaCreated { rosca_id: u32, contribution_amount: BalanceOf<T>, contribution_frequency: BlockNumberFor<T> },
-		// ParticipantDefaulted {
-		// 	rosca_id: u32,
-		// 	participant: AccountIdOf<T>,
-		// },
-		// ContributionMade {
-		// 	rosca_id: u32,
-		// 	contributor: AccountIdOf<T>,
-		// 	recipient: AccountIdOf<T>,
-		// 	amount: BalanceOf<T>,
-		// },
+		RoscaCreated { rosca_id: u32, contribution_amount: BalanceOf<T>, contribution_frequency: BlockNumberFor<T>, random_order: bool, name: BoundedVec<u8, <T as Config>::StringLimit>, number_of_participants: u32, minimum_participant_threshold: u32, start_by_block: BlockNumberFor<T>, eligible_participants: BoundedVec<AccountIdOf<T>, T::MaxParticipants>, creator: AccountIdOf<T> },
+		/// Participant missed a payment
+		ParticipantDefaulted {
+			rosca_id: u32,
+			participant: AccountIdOf<T>,
+		},
+		/// Participant made a contribution
+		ContributionMade {
+			rosca_id: u32,
+			contributor: AccountIdOf<T>,
+			recipient: AccountIdOf<T>,
+			amount: BalanceOf<T>,
+		},
+		/// A Rosca deposit was deducted from
+		DepositDeducted {
+			rosca_id: u32,
+			contributor: AccountIdOf<T>,
+			recipient: AccountIdOf<T>,
+			amount: BalanceOf<T>,
+			sufficient: bool
+		},
+		/// Participant joined the Rosca
+		JoinedRosca {
+			rosca_id: u32,
+			contributor: AccountIdOf<T>,
+		},
+		/// Participant left the Rosca
+		LeftRosca {
+			rosca_id: u32,
+			contributor: AccountIdOf<T>,
+		},
+		/// A Rosca was created
 		RoscaStarted {
 			rosca_id: u32,
 		},
+		/// A Rosca was completed
 		RoscaComplete {
 			rosca_id: u32,
 		},
+		/// A Security Deposit was added to
+		SecurityDepositContribution {
+			rosca_id: u32,
+			depositor: AccountIdOf<T>,
+		},
+		/// A Security Deposit was claimed back
+		SecurityDepositClaimed {
+			rosca_id: u32,
+			depositor: AccountIdOf<T>,
+		},
+		/// A Rosca was manually ended
+		RoscaManuallyEnded {
+			rosca_id: u32,
+		},
+		/// A new round started
+		NewRoundStarted {
+			rosca_id: u32,
+			new_eligible_recipient: AccountIdOf<T>
+		}
 	}
 	// Errors inform users that something went wrong.
 	#[pallet::error]
@@ -205,32 +246,57 @@ pub mod pallet {
 		MultiplyError,
 		DivisionError,
 		ArithmeticError,
+		/// Rosca start by block must be in the future
 		StartByBlockMustBeFuture,
+		/// Too many proposed participants
 		TooManyProposedParticipants,
+		/// Rosca position not valid
 		PositionTooLarge,
+		/// Rosca with given id not found
 		RoscaNotFound,
+		/// Rosca position already filled
 		PositionAlreadyFilled,
+		/// Participant already joined this Rosca
 		AlreadyJoined,
+		/// Rosca already active
 		RoscaAlreadyActive,
+		/// Rosca security depositio not found
 		SecurityDepositNotFound,
+		/// All Rosca positions filled
 		AllPositionsFilled,
+		/// Rosca participant not found
 		RoscaParticipantsNotFound,
+		/// Not a participant in this Rosca
 		NotAParticipant,
+		/// Participant threshold not met
 		ParticipantThresholdNotMet,
+		/// Participant count for Rosca not found
 		RoscaParticipantCountNotFound,
-		NoClaimant,
+		/// Rosca not active
 		RoscaNotActive,
+		/// Can't contribute when contributor is the recipient
 		CantContributeToSelf,
+		/// No eligible participant found
 		NoEligbleClaimant,
+		/// Participant already contributed this round
 		AlreadyContributed,
+		/// No next pay by block
 		NoNextPayByBlock,
+		/// No final pay by block
 		FinalPayBlockNotFound,
+		/// Final pay by block must be past
 		FinalPayByBlockMustBePast,
+		/// Rosca not completed
 		RoscaNotCompleted,
+		/// Can't contribute beyond final pay by block
 		CantContributeBeyondFinalPayBy,
+		/// Rosca already completed
 		RoscaAlreadyCompleted,
+		/// Not invited to this Rosca
 		NotInvited,
+		/// Can't invite to self
 		CantInviteSelf,
+		/// Min participant threshold not met
 		ThresholdTooHigh
 	}
 
@@ -263,9 +329,12 @@ pub mod pallet {
 			rosca_participants.resize(number_of_participants as usize, None);
 			rosca_participants[position as usize] = Some(signer.clone());
 
+			let mut rosca_invited_participants_including_creator: BoundedVec<AccountIdOf<T>, T::MaxParticipants> = BoundedVec::new();
 			RoscaInvitedPreverifiedParticipants::<T>::insert(new_rosca_id, &signer, ());
+			rosca_invited_participants_including_creator.try_push(signer.clone());
 			for invited_participant in invited_pre_verified_participants.iter() {
 				RoscaInvitedPreverifiedParticipants::<T>::insert(new_rosca_id, invited_participant, ());
+				rosca_invited_participants_including_creator.try_push(invited_participant.clone());
 			}
 
 			let rosca_participants: BoundedVec<Option<AccountIdOf<T>>, T::MaxParticipants> = BoundedVec::try_from(rosca_participants).map_err(|_| Error::<T>::TooManyProposedParticipants)?;
@@ -278,13 +347,26 @@ pub mod pallet {
 				random_order,
 				number_of_participants,
 				minimum_participant_threshold,
-				contribution_amount,
+				contribution_amount: contribution_amount.into(),
 				contribution_frequency,
 				start_by_block,
-				name
+				name: name.clone()
 			});
 
 			<NextRoscaId<T>>::put(new_rosca_id + 1);
+
+			Self::deposit_event(Event::<T>::RoscaCreated {
+				rosca_id: new_rosca_id,
+				random_order,
+				number_of_participants,
+				minimum_participant_threshold,
+				eligible_participants: rosca_invited_participants_including_creator,
+				contribution_amount: contribution_amount.into(),
+				contribution_frequency,
+				start_by_block,
+				name,
+				creator: signer
+			});
 
 			Ok(())
 
@@ -327,6 +409,11 @@ pub mod pallet {
 
 			RoscaParticipantsCount::<T>::insert(rosca_id, current_participant_count);
 
+			Self::deposit_event(Event::<T>::JoinedRosca {
+				rosca_id,
+				contributor: signer
+			});
+
 			Ok(())
 		}
 
@@ -350,6 +437,11 @@ pub mod pallet {
 			current_participant_count = current_participant_count.checked_sub(1).ok_or(Error::<T>::ArithmeticUnderflow)?;
 
 			RoscaParticipantsCount::<T>::insert(rosca_id, current_participant_count);
+
+			Self::deposit_event(Event::<T>::LeftRosca {
+				rosca_id,
+				contributor: signer
+			});
 
 			Ok(())
 		}
@@ -441,18 +533,37 @@ pub mod pallet {
 							if participant_deposit > 0 {
 								T::NativeBalance::transfer(&rosca_account_id, &eligible_claimant.clone(), participant_deposit.into(), Expendable)?;
 								RoscaSecurityDeposits::<T>::insert(rosca_id, participant, 0);
+
+								Self::deposit_event(Event::<T>::DepositDeducted {
+									rosca_id,
+									contributor: participant.clone(),
+									recipient: eligible_claimant.clone(),
+									amount: participant_deposit.into(),
+									sufficient: false,
+								});
 							}
 						} else {
 							// transfer the amount
 							T::NativeBalance::transfer(&rosca_account_id, &eligible_claimant.clone(), rosca.contribution_amount.into(), Expendable)?;
 							let deposit_remaining_after_transfer = participant_deposit.checked_sub(rosca.contribution_amount).unwrap_or(0);
 							RoscaSecurityDeposits::<T>::insert(rosca_id, participant, &deposit_remaining_after_transfer);
+							Self::deposit_event(Event::<T>::DepositDeducted {
+								rosca_id,
+								contributor: participant.clone(),
+								recipient: eligible_claimant.clone(),
+								amount: rosca.contribution_amount.into(),
+								sufficient: true
+							});
 						}
 
 						
 						if defaulter {
 							// They are a defaulter and we should increment their default count
 							DefaultCount::<T>::mutate(rosca_id, &participant, |count| *count = count.saturating_add(1));
+							Self::deposit_event(Event::<T>::ParticipantDefaulted {
+								rosca_id,
+								participant: participant.clone(),
+							});
 						}  // Else they had a buffer deposit and therefore not a defaulter just forgetful. 
 					}
 				}
@@ -477,7 +588,12 @@ pub mod pallet {
 				// Clear contributions count and contributors
 				CurrentContributors::<T>::clear_prefix(rosca_id, (active_rosca_participants_order.len() - 1) as u32, None);
 				CurrentContribtionCount::<T>::insert(rosca_id, 0);
-				
+
+				Self::deposit_event(Event::<T>::NewRoundStarted {
+					rosca_id,
+					new_eligible_recipient: eligible_claimant.clone(),
+				});
+
 			}
 
 			// If we are here we must have caught up to the current round
@@ -487,6 +603,13 @@ pub mod pallet {
 			CurrentContributors::<T>::insert(rosca_id, &signer, ());
 			let current_contribution_count = Self::current_contribution_count(rosca_id).checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
 			CurrentContribtionCount::<T>::insert(rosca_id, current_contribution_count);
+
+			Self::deposit_event(Event::<T>::ContributionMade {
+				rosca_id,
+				contributor: signer.clone(),
+				recipient: eligible_claimant.clone(),
+				amount: rosca.contribution_amount.into(),
+			});
 
 
 			if current_contribution_count == (active_rosca_participants_order.len() - 1) as u32 {
@@ -512,6 +635,10 @@ pub mod pallet {
 				CurrentContributors::<T>::clear_prefix(rosca_id, (active_rosca_participants_order.len() - 1) as u32, None);
 				CurrentContribtionCount::<T>::insert(rosca_id, 0);
 
+				Self::deposit_event(Event::<T>::NewRoundStarted {
+					rosca_id,
+					new_eligible_recipient: eligible_claimant.clone(),
+				});
 			}
 
 			
@@ -547,18 +674,36 @@ pub mod pallet {
 							if participant_deposit > 0 {
 								T::NativeBalance::transfer(&rosca_account_id, &eligible_claimant.clone(), participant_deposit.into(), Expendable)?;
 								RoscaSecurityDeposits::<T>::insert(rosca_id, participant, 0);
+								Self::deposit_event(Event::<T>::DepositDeducted {
+									rosca_id,
+									contributor: participant.clone(),
+									recipient: eligible_claimant.clone(),
+									amount: participant_deposit.into(),
+									sufficient: false
+								});
 							}
 						} else {
 							// transfer the amount
 							T::NativeBalance::transfer(&rosca_account_id, &eligible_claimant.clone(), rosca.contribution_amount.into(), Expendable)?;
 							let deposit_remaining_after_transfer = participant_deposit.checked_sub(rosca.contribution_amount).unwrap_or(0);
 							RoscaSecurityDeposits::<T>::insert(rosca_id, participant, &deposit_remaining_after_transfer);
+							Self::deposit_event(Event::<T>::DepositDeducted {
+								rosca_id,
+								contributor: participant.clone(),
+								recipient: eligible_claimant.clone(),
+								amount: rosca.contribution_amount.into(),
+								sufficient: true
+							});
 						}
 
 						
 						if defaulter {
 							// They are a defaulter and we should increment their default count
 							DefaultCount::<T>::mutate(rosca_id, &participant, |count| *count = count.saturating_add(1));
+							Self::deposit_event(Event::<T>::ParticipantDefaulted {
+								rosca_id,
+								participant: participant.clone(),
+							});
 						}  // Else they had a buffer deposit and therefore not a defaulter just forgetful. 
 					}
 				}
@@ -567,6 +712,10 @@ pub mod pallet {
 				eligible_claimant = active_rosca_participants_order[active_rosca_participants_order.len() - 1 as usize].clone();
 				EligibleClaimant::<T>::insert(rosca_id, eligible_claimant.clone());
 				active_rosca_participants_order.try_rotate_right(1).map_err(|_| Error::<T>::ArithmeticError)?;
+				Self::deposit_event(Event::<T>::NewRoundStarted {
+					rosca_id,
+					new_eligible_recipient: eligible_claimant.clone(),
+				});
 			}
 
 			ensure!(next_pay_by_block == final_pay_by_block.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?, Error::<T>::ArithmeticError);
@@ -593,6 +742,11 @@ pub mod pallet {
 			let rosca_account_id = Self::rosca_account_id(rosca_id);
 			T::NativeBalance::transfer(&rosca_account_id, &signer, participant_deposit.into(), Expendable)?;
 			RoscaSecurityDeposits::<T>::remove(rosca_id, &signer);
+			Self::deposit_event(Event::<T>::SecurityDepositClaimed {
+				rosca_id,
+				depositor: signer
+			});
+
 			Ok(())
 		}
 
@@ -607,6 +761,10 @@ pub mod pallet {
 			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).unwrap_or(0);
 			let new_deposit_balance = participant_deposit.checked_add(amount).ok_or(Error::<T>::ArithmeticOverflow)?;
 			RoscaSecurityDeposits::<T>::insert(rosca_id, &signer, new_deposit_balance);
+			Self::deposit_event(Event::<T>::SecurityDepositContribution {
+				rosca_id,
+				depositor: signer
+			});
 			Ok(())
 		}
 	}
