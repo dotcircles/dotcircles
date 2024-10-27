@@ -24,7 +24,9 @@ import { useEffect, useState } from "react";
 import { NameMap } from "@/app/lib/mock";
 
 export default function CreateRosca() {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure({
+    onOpen: () => console.log("Modal opened"),
+  });
   const [api, setApi] = useState<ApiPromise | null>(null);
   const [isApiReady, setIsApiReady] = useState(false);
 
@@ -102,7 +104,12 @@ export default function CreateRosca() {
       <Button onPress={onOpen} color="primary">
         Create a new circle
       </Button>
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="top-center">
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        placement="top-center"
+        classNames={{ wrapper: "!opacity-100" }}
+      >
         <ModalContent>
           {(onClose) => (
             <>
