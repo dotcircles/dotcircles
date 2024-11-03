@@ -13,7 +13,7 @@ import StartRoscaBtn from "@/components/startRosca";
 import { Avatar } from "@nextui-org/avatar";
 import { redirect } from "next/navigation";
 import { title } from "@/components/primitives";
-import { createDepositRows } from "@/app/lib/helpers";
+import { blockNumberToDate, createDepositRows } from "@/app/lib/helpers";
 import { Toaster } from "sonner";
 
 export default async function Page({
@@ -23,6 +23,8 @@ export default async function Page({
 }) {
   const address = myAddress;
   const { roscaId } = await params;
+  const api = await getApi();
+  const currentBlockNumber = (await api.derive.chain.bestNumber()).toNumber();
   const roscaDetails: any = await getPendingRoscasDetails(roscaId);
   const securityDeposits: any = await getSecurityDeposits(roscaId);
   const depositRows = createDepositRows(securityDeposits);
@@ -71,8 +73,15 @@ export default async function Page({
         <RoscaInfo
           name={roscaDetails.name}
           type={roscaDetails.randomOrder ? "Random" : "Fixed Order"}
-          start={roscaDetails.startByBlock}
-          contributionFrequency={roscaDetails.contributionFrequency}
+          start={blockNumberToDate(
+            currentBlockNumber,
+            roscaDetails.startByBlock
+          )}
+          contributionFrequency={
+            roscaDetails.contributionFrequency == "100,800"
+              ? "Weekly"
+              : "Monthly"
+          }
           contributionAmount={roscaDetails.contributionAmount}
           totalParticipants={roscaDetails.numberOfParticipants}
           minParticipants={roscaDetails.minimumParticipantThreshold}

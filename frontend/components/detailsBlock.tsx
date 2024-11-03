@@ -8,9 +8,11 @@ const RoscaInfo = ({
   minParticipants,
 }: any) => {
   return (
-    <div className="max-w-md mx-auto bg-zinc-800 shadow-md rounded-md overflow-hidden">
+    <div className="max-w-fit mx-auto bg-zinc-800 shadow-md rounded-md overflow-hidden">
       <div className="p-6">
-        <h2 className="text-2xl font-bold mb-4">Saving Circle Information</h2>
+        <h2 className="text-2xl font-bold mb-4 text-center">
+          Saving Circle Information
+        </h2>
         <div className="space-y-4">
           <InfoRow label="Name" value={name} />
           <InfoRow label="Type" value={type} />
@@ -33,7 +35,7 @@ const RoscaInfo = ({
 
 const InfoRow = ({ label, value }: any) => (
   <div className="flex justify-between">
-    <span className="font-semibold">{label}:</span>
+    <span className="font-semibold mr-4">{label}:</span>
     <span className="">{value}</span>
   </div>
 );

@@ -32,8 +32,10 @@ export default async function Page({
 }) {
   const address = myAddress;
   const { roscaId } = await params;
+  const api = await getApi();
   const roscaDetails: any = await getActiveRoscasDetails(roscaId);
-  const securityDeposits: any = await getSecurityDeposits(2);
+  const securityDeposits: any = await getSecurityDeposits(roscaId);
+  const currentBlockNumber = (await api.derive.chain.bestNumber()).toNumber();
   const depositRows = createDepositRows(securityDeposits);
   console.log(depositRows);
   const activeParticipants: any = await getActiveRoscaParticipantsOrder(
@@ -96,7 +98,11 @@ export default async function Page({
             type={roscaDetails.randomOrder ? "Random" : "Fixed Order"}
             start={roscaDetails.startByBlock}
             contributionAmount={roscaDetails.contributionAmount}
-            contributionFrequency={roscaDetails.contributionFrequency}
+            contributionFrequency={
+              roscaDetails.contributionFrequency == 100800
+                ? "Weekly"
+                : "Monthly"
+            }
             totalParticipants={roscaDetails.numberOfParticipants}
             minParticipants={roscaDetails.minimumParticipantThreshold}
           />

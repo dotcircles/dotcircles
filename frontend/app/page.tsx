@@ -19,6 +19,7 @@ import { Button } from "@nextui-org/button";
 import getApi from "./lib/polkadot";
 import { myAddress } from "./lib/mock";
 import CreateRosca from "@/components/createRosca";
+import { blockNumberToDate } from "./lib/helpers";
 
 function createTableRows(
   data: any,
@@ -39,8 +40,12 @@ function createTableRows(
         number_of_participants: roscaDetails.numberOfParticipants,
         min_participants: roscaDetails.minimumParticipantThreshold,
         contribution_amount: roscaDetails.contributionAmount,
-        contribution_frequency: roscaDetails.contributionFrequency,
-        start_by_date: roscaDetails.startByBlock,
+        contribution_frequency:
+          roscaDetails.contributionFrequency == 100800 ? "Weekly" : "Monthly",
+        start_by_date: blockNumberToDate(
+          blockNumber,
+          roscaDetails.startByBlock
+        ).toString(),
         view: (
           <Button href={`view/${state}/${roscaId}`} as={Link} showAnchorIcon>
             {expired ? "Expired" : "View"}
@@ -79,7 +84,7 @@ export default async function Home() {
           <div className={title()}>Invites</div>
         </div>
         <div>
-          <RoscaDetailsTable rows={roscaRows} />
+          <RoscaDetailsTable rows={roscaRows} type="Pending" />
         </div>
       </section>
       <section className="flex flex-col items-center justify-center gap py-8 md:py-10">
@@ -87,7 +92,7 @@ export default async function Home() {
           <div className={title()}>Active Circles</div>
         </div>
         <div>
-          <RoscaDetailsTable rows={activeRoscasRows} />
+          <RoscaDetailsTable rows={activeRoscasRows} type="Active" />
         </div>
       </section>
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { ApiPromise, WsProvider } from "@polkadot/api";
 
+import AddSecurityDepositModal from "components/addSecurityDeposit";
+
 import { Button } from "@nextui-org/button";
 import {
   Table,
@@ -19,6 +21,7 @@ import {
   web3Enable,
   web3FromAddress,
 } from "@polkadot/extension-dapp";
+import { useDisclosure } from "@nextui-org/modal";
 
 const columns = [
   {
@@ -54,6 +57,10 @@ export default function SecurityDepositsTable({
   ];
   roscaId: any;
 }) {
+  const { isOpen, onOpen, onOpenChange } = useDisclosure({
+    onOpen: () => console.log("Modal opened"),
+  });
+  // const [modalOpen, setModalOpen] = useState(false);
   const [api, setApi] = useState<ApiPromise | null>(null);
   const [isApiReady, setIsApiReady] = useState(false);
 
@@ -110,13 +117,16 @@ export default function SecurityDepositsTable({
       return {
         ...row,
         showButton: row.showButton ? (
-          <Button
-            onClick={handleTopUp}
-            className={`bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg`}
-            radius="full"
-          >
-            Top Up
-          </Button>
+          <div>
+            <Button
+              onPress={onOpen}
+              className={`bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg`}
+              radius="full"
+            >
+              Top Up
+            </Button>
+            <AddSecurityDepositModal roscaId={roscaId} open={isOpen} />
+          </div>
         ) : (
           ""
         ),
@@ -139,13 +149,16 @@ export default function SecurityDepositsTable({
         emptyContent={
           <>
             <div className="pb-7">No security deposits added so far...</div>
-            <Button
-              onClick={handleTopUp}
-              className={`bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg`}
-              radius="full"
-            >
-              Top Up
-            </Button>
+            <div>
+              <Button
+                onPress={onOpen}
+                className={`bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg`}
+                radius="full"
+              >
+                Top Up
+              </Button>
+              <AddSecurityDepositModal roscaId={roscaId} open={isOpen} />
+            </div>
           </>
         }
       >

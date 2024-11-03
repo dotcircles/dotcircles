@@ -37,7 +37,7 @@ const columns = [
   },
   {
     key: "start_by_date",
-    label: "START DATE",
+    label: "ESTIMATED START BY DATE",
   },
   {
     key: "view",
@@ -47,6 +47,7 @@ const columns = [
 
 export default function RoscaDetailsTable({
   rows,
+  type,
 }: {
   rows: [
     {
@@ -61,6 +62,7 @@ export default function RoscaDetailsTable({
       expired: any;
     }
   ];
+  type: "Active" | "Pending";
 }) {
   return (
     <Table aria-label="Example table with dynamic content">
@@ -71,7 +73,14 @@ export default function RoscaDetailsTable({
           </TableColumn>
         )}
       </TableHeader>
-      <TableBody items={rows} emptyContent={"No invites so far..."}>
+      <TableBody
+        items={rows}
+        emptyContent={
+          type === "Active"
+            ? "No active circles so far..."
+            : "No invites so far..."
+        }
+      >
         {(item) => (
           <TableRow key={item.key} className={item.expired ? "opacity-25" : ""}>
             {(columnKey) => (
