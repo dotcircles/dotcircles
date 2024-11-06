@@ -17,6 +17,7 @@ import {
   web3FromAddress,
 } from "@polkadot/extension-dapp";
 import { myAddress } from "@/app/lib/mock";
+import { Input } from "@nextui-org/input";
 
 export default function AddSecurityDepositModal({
   roscaId,
@@ -30,7 +31,7 @@ export default function AddSecurityDepositModal({
     isOpen: open,
   });
 
-  const [deposit, setDeposit] = useState<number | number[]>(100);
+  const [deposit, setDeposit] = useState<string>("0");
 
   const [api, setApi] = useState<ApiPromise | null>(null);
   const [isApiReady, setIsApiReady] = useState(false);
@@ -72,7 +73,7 @@ export default function AddSecurityDepositModal({
       const extensions = await web3Enable("DOTCIRCLES");
       const acc = await web3FromAddress(myAddress);
 
-      const tx = api!.tx.rosca.addToSecurityDeposit(roscaId, 1000000000);
+      const tx = api!.tx.rosca.addToSecurityDeposit(roscaId, deposit);
 
       const hash = await tx.signAndSend(myAddress, {
         signer: acc.signer,
@@ -92,7 +93,14 @@ export default function AddSecurityDepositModal({
             </ModalHeader>
 
             <ModalBody>
-              <Slider
+              <Input
+                label="Deposit"
+                placeholder="Enter a deposit"
+                value={deposit}
+                onChange={(e) => setDeposit(e.target.value)}
+                variant="bordered"
+              />
+              {/* <Slider
                 aria-label="Volume"
                 size="lg"
                 color="secondary"
@@ -100,8 +108,8 @@ export default function AddSecurityDepositModal({
                 className="max-w-md"
               />
               <p className="text-default-500 font-medium text-small">
-                Current volume: {deposit}
-              </p>
+                Current deposit: {deposit}
+              </p> */}
             </ModalBody>
             <ModalFooter>
               <Button color="danger" variant="flat" onPress={onClose}>
