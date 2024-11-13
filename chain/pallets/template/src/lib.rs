@@ -439,7 +439,7 @@ pub mod pallet {
 
 			RoscaParticipantsCount::<T>::insert(rosca_id, current_participant_count);
 
-			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).ok_or(0).unwrap();
+			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).unwrap_or(0);
 			if participant_deposit > 0 {
 				let rosca_account_id = Self::rosca_account_id(rosca_id);
 				T::NativeBalance::transfer(&rosca_account_id, &signer, participant_deposit.into(), Expendable)?;
