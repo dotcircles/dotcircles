@@ -43,7 +43,17 @@ export default function ContributorsTable({
   return (
     <>
       <Toaster richColors />
-      <Table aria-label="Example table with dynamic content" isCompact>
+      <Table
+        aria-label="Example table with dynamic content"
+        isCompact
+        classNames={{
+          th: " bg-default bg-opacity-45 text-white",
+          // wrapper: "bg-gradient-to-tr from-rose-500 via-purple-500 to-slate-800",
+          wrapper: "bg-default bg-opacity-30",
+          tbody: "text-white",
+          emptyWrapper: "text-white",
+        }}
+      >
         <TableHeader columns={columns}>
           {(column) => (
             <TableColumn key={column.key} align={column.align} maxWidth={5}>

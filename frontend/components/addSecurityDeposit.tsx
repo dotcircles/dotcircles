@@ -21,14 +21,11 @@ import { Input } from "@nextui-org/input";
 
 export default function AddSecurityDepositModal({
   roscaId,
-  open,
 }: {
   roscaId: number;
-  open: boolean;
 }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure({
     onOpen: () => console.log("Modal opened"),
-    isOpen: open,
   });
 
   const [deposit, setDeposit] = useState<string>("0");
@@ -84,44 +81,52 @@ export default function AddSecurityDepositModal({
     }
   };
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="top-center">
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">
-              Saving Circle Information
-            </ModalHeader>
+    <>
+      <Button
+        onPress={onOpen}
+        className={`bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg`}
+        radius="full"
+      >
+        Top Up
+      </Button>
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="top-center">
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Add a security deposit
+              </ModalHeader>
 
-            <ModalBody>
-              <Input
-                label="Deposit"
-                placeholder="Enter a deposit"
-                value={deposit}
-                onChange={(e) => setDeposit(e.target.value)}
-                variant="bordered"
-              />
-              {/* <Slider
-                aria-label="Volume"
-                size="lg"
-                color="secondary"
-                onChangeEnd={setDeposit}
-                className="max-w-md"
-              />
-              <p className="text-default-500 font-medium text-small">
-                Current deposit: {deposit}
-              </p> */}
-            </ModalBody>
-            <ModalFooter>
-              <Button color="danger" variant="flat" onPress={onClose}>
-                Close
-              </Button>
-              <Button color="primary" onPress={handleTopUp}>
-                Confirm
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+              <ModalBody>
+                <Input
+                  label="Deposit"
+                  placeholder="Enter a deposit"
+                  value={deposit}
+                  onChange={(e) => setDeposit(e.target.value)}
+                  variant="bordered"
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  color="danger"
+                  variant="flat"
+                  onPress={onClose}
+                  radius="full"
+                >
+                  Close
+                </Button>
+                <Button
+                  className="bg-gradient-to-tr from-rose-500 to-purple-500 text-white"
+                  onPress={handleTopUp}
+                  radius="full"
+                >
+                  Confirm
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+    </>
   );
 }

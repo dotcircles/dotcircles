@@ -103,6 +103,7 @@ export default function ContributeRoscaBtn({ roscaId }: any) {
       <Button
         onClick={handleContribute}
         className={`w-6/12 text-white bg-fuchsia-400`}
+        radius="full"
       >
         "Contribute"
       </Button>

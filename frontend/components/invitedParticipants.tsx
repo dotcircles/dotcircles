@@ -128,9 +128,21 @@ export default function InvitedParticipantTable({
         ...row,
         showButton:
           row.showButton == "leave" ? (
-            <Button onClick={handleLeave}>Leave</Button>
+            <Button
+              onClick={handleLeave}
+              radius="full"
+              className="bg-gradient-to-tr from-rose-500 to-purple-500 text-white"
+            >
+              Leave
+            </Button>
           ) : (
-            <Button onClick={handleJoin}>Join</Button>
+            <Button
+              onClick={handleJoin}
+              radius="full"
+              className="bg-gradient-to-tr from-rose-500 to-purple-500 text-white"
+            >
+              Join
+            </Button>
           ),
       };
     }
@@ -144,7 +156,17 @@ export default function InvitedParticipantTable({
   // );
 
   return (
-    <Table aria-label="Example table with dynamic content" isCompact isStriped>
+    <Table
+      aria-label="Example table with dynamic content"
+      isCompact
+      classNames={{
+        th: " bg-default bg-opacity-45 text-white",
+        // wrapper: "bg-gradient-to-tr from-rose-500 via-purple-500 to-slate-800",
+        wrapper: "bg-default bg-opacity-30",
+        tbody: "text-white",
+        emptyWrapper: "text-white",
+      }}
+    >
       <TableHeader columns={columns}>
         {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
       </TableHeader>

@@ -47,7 +47,13 @@ function createTableRows(
           roscaDetails.startByBlock
         ).toString(),
         view: (
-          <Button href={`view/${state}/${roscaId}`} as={Link} showAnchorIcon>
+          <Button
+            radius="full"
+            href={`view/${state}/${roscaId}`}
+            as={Link}
+            showAnchorIcon
+            className="bg-gradient-to-tr from-rose-500 to-purple-500"
+          >
             {expired ? "Expired" : "View"}
           </Button>
         ),

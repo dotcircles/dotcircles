@@ -39,7 +39,7 @@ import {
 import { DateInput } from "@nextui-org/date-input";
 
 export default function CreateRosca() {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure({
+  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure({
     onOpen: () => console.log("Modal opened"),
   });
 
@@ -174,6 +174,7 @@ export default function CreateRosca() {
             } else {
               rejectPromise("Rosca creation failed");
             }
+
             unsub();
           }
         }
@@ -186,10 +187,21 @@ export default function CreateRosca() {
 
   return (
     <>
-      <Button onPress={onOpen} color="primary">
+      <Button
+        onPress={onOpen}
+        className="bg-gradient-to-tr from-rose-500 to-purple-500"
+        radius="full"
+      >
         Create a new circle
       </Button>
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="top-center">
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        placement="top-center"
+        classNames={{
+          base: "bg-black",
+        }}
+      >
         <ModalContent>
           {(onClose) => (
             <>
@@ -207,6 +219,7 @@ export default function CreateRosca() {
                 <Checkbox
                   isSelected={randomOrder}
                   onChange={(e) => setRandomOrder(e.target.checked)}
+                  color="warning"
                   classNames={{
                     label: "text-small",
                   }}
@@ -269,10 +282,19 @@ export default function CreateRosca() {
                 />
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="flat" onPress={onClose}>
+                <Button
+                  color="danger"
+                  variant="flat"
+                  onPress={onClose}
+                  radius="full"
+                >
                   Close
                 </Button>
-                <Button color="primary" onPress={handleCreate}>
+                <Button
+                  className="bg-gradient-to-tr from-rose-500 to-purple-500 text-white"
+                  onPress={handleCreate}
+                  radius="full"
+                >
                   Confirm
                 </Button>
               </ModalFooter>

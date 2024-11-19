@@ -65,7 +65,16 @@ export default function RoscaDetailsTable({
   type: "Active" | "Pending";
 }) {
   return (
-    <Table aria-label="Example table with dynamic content">
+    <Table
+      aria-label="Example table with dynamic content"
+      classNames={{
+        th: " bg-default bg-opacity-45 text-white",
+        // wrapper: "bg-gradient-to-tr from-rose-500 via-purple-500 to-slate-800",
+        wrapper: "bg-default bg-opacity-30",
+        tbody: "text-white",
+        emptyWrapper: "text-white",
+      }}
+    >
       <TableHeader columns={columns}>
         {(column) => (
           <TableColumn key={column.key} align="center">

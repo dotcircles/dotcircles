@@ -8,7 +8,7 @@ const RoscaInfo = ({
   minParticipants,
 }: any) => {
   return (
-    <div className="max-w-fit mx-auto bg-zinc-800 shadow-md rounded-md overflow-hidden">
+    <div className="max-w-fit mx-auto bg-default bg-opacity-30 shadow-md rounded-md overflow-hidden">
       <div className="p-6">
         <h2 className="text-2xl font-bold mb-4 text-center">
           Saving Circle Information
