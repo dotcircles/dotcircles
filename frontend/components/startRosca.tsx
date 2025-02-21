@@ -13,6 +13,7 @@ import {
 import { Button } from "@nextui-org/button";
 import { redirect } from "next/navigation";
 import { toast } from "sonner";
+import { start } from "repl";
 
 export default function StartRoscaBtn({ roscaId, startable }: any) {
   const [api, setApi] = useState<ApiPromise | null>(null);
@@ -100,9 +101,16 @@ export default function StartRoscaBtn({ roscaId, startable }: any) {
   return (
     <Button
       onClick={handleStart}
-      className={`w-full text-white`}
+      radius="full"
+      className={
+        "bg-gradient-to-tr from-lime-500 to-cyan-500 shadow-lg w-full text-white"
+      }
       isDisabled={!startable}
-      color={startable ? "success" : "default"}
+      // color={
+      //   startable
+      //     ? "bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg"
+      //     : "default"
+      // }
     >
       {startable ? "Start" : "Waiting For Participants"}
     </Button>

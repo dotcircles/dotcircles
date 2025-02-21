@@ -57,76 +57,12 @@ export default function SecurityDepositsTable({
   ];
   roscaId: any;
 }) {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure({
-    onOpen: () => console.log("Modal opened"),
-  });
-  // const [modalOpen, setModalOpen] = useState(false);
-  const [api, setApi] = useState<ApiPromise | null>(null);
-  const [isApiReady, setIsApiReady] = useState(false);
-
-  useEffect(() => {
-    const initApi = async () => {
-      try {
-        // Initialize the provider to connect to the node
-        const provider = new WsProvider(process.env.NEXT_PUBLIC_RPC);
-
-        // Create the API and wait until ready
-        const api = await ApiPromise.create({ provider });
-        await api.isReady;
-
-        // Update state
-        setApi(api);
-        setIsApiReady(true);
-      } catch (error) {
-        console.error("Failed to initialize API", error);
-      }
-    };
-
-    initApi();
-
-    return () => {
-      if (api) {
-        api.disconnect();
-      }
-    };
-  }, []);
-
-  const handleTopUp = async () => {
-    if (!isApiReady) {
-      console.log("API is not ready");
-      return;
-    }
-
-    try {
-      const extensions = await web3Enable("DOTCIRCLES");
-      const acc = await web3FromAddress(myAddress);
-
-      const tx = api!.tx.rosca.addToSecurityDeposit(roscaId, 1000000000);
-
-      const hash = await tx.signAndSend(myAddress, {
-        signer: acc.signer,
-        nonce: -1,
-      });
-    } catch (error) {
-      console.error("Failed to submit extrinsic", error);
-    }
-  };
-
   const newRows = rows.map((row) => {
     if (row.hasOwnProperty("showButton")) {
       return {
         ...row,
         showButton: row.showButton ? (
-          <div>
-            <Button
-              onPress={onOpen}
-              className={`bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg`}
-              radius="full"
-            >
-              Top Up
-            </Button>
-            <AddSecurityDepositModal roscaId={roscaId} open={isOpen} />
-          </div>
+          <AddSecurityDepositModal roscaId={roscaId} />
         ) : (
           ""
         ),
@@ -136,7 +72,17 @@ export default function SecurityDepositsTable({
   });
 
   return (
-    <Table aria-label="Example table with dynamic content" isCompact>
+    <Table
+      aria-label="Example table with dynamic content"
+      isCompact
+      classNames={{
+        th: " bg-default bg-opacity-45 text-white",
+        // wrapper: "bg-gradient-to-tr from-rose-500 via-purple-500 to-slate-800",
+        wrapper: "bg-default bg-opacity-30",
+        tbody: "text-white",
+        emptyWrapper: "text-white",
+      }}
+    >
       <TableHeader columns={columns}>
         {(column) => (
           <TableColumn key={column.key} align="start">
@@ -149,16 +95,7 @@ export default function SecurityDepositsTable({
         emptyContent={
           <>
             <div className="pb-7">No security deposits added so far...</div>
-            <div>
-              <Button
-                onPress={onOpen}
-                className={`bg-gradient-to-tr from-rose-500 to-purple-500 text-white shadow-lg`}
-                radius="full"
-              >
-                Top Up
-              </Button>
-              <AddSecurityDepositModal roscaId={roscaId} open={isOpen} />
-            </div>
+            <AddSecurityDepositModal roscaId={roscaId} />
           </>
         }
       >

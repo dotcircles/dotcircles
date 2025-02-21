@@ -15,6 +15,8 @@ import { link as linkStyles } from "@nextui-org/theme";
 import NextLink from "next/link";
 import clsx from "clsx";
 import { title, subtitle } from "@/components/primitives";
+import { Image } from "@nextui-org/image";
+import logo from "public/logo.png";
 
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -53,9 +55,10 @@ export const Navbar = () => {
     <NextUINavbar maxWidth="xl" position="sticky">
       <NavbarContent className="basis-1/5 sm:basis-full mt-2" justify="end">
         <NavbarItem className="hidden sm:flex gap-2">
-          <div className="font-mono font-extrabold text-3xl italic">
+          {/* <div className="font-mono font-extrabold text-3xl italic">
             DOTCIRCLES
-          </div>
+          </div> */}
+          <Image src="/logo.png" alt="My Logo" />
         </NavbarItem>
         <NavbarBrand as="li" className="gap-3 max-w-fit">
           <NextLink className="flex justify-start items-center gap-1" href="/">
@@ -70,9 +73,10 @@ export const Navbar = () => {
           </NextLink>
         </NavbarBrand>
         <NavbarItem className="hidden sm:flex gap-2">
-          <div className="font-mono font-extrabold text-3xl italic">
+          {/* <div className="font-mono font-extrabold text-3xl italic">
             DOTCIRCLES
-          </div>
+          </div> */}
+          {/* <Image src="/logo.png" alt="My Logo" /> */}
         </NavbarItem>
       </NavbarContent>
     </NextUINavbar>
