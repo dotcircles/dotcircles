@@ -17,18 +17,23 @@ use frame_support::traits::fungible::Mutate;
 #[test]
 fn create_rosca_works() {
     new_test_ext().execute_with(|| {
+        // Set initial block and timestamp
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
 
+        // Create a bounded vector of invited participants (using u64 as AccountId)
         let participants: BoundedVec<u64, ConstU32<149>> = vec![2, 3, 4].try_into().unwrap();
+        // Mint funds for the creator
         Balances::mint_into(&1, 1000);
+        // Here, contribution_frequency = 50 and start_by_timestamp = 51
         assert_ok!(RoscaPallet::create_rosca(
             RuntimeOrigin::signed(1),
             false,
             participants,
             4,
             100,
-            50,
-            51,
+            50,   // contribution frequency (timestamp duration)
+            51,   // start by timestamp
             Some(0),
             bounded_vec![1]
         ));
@@ -40,13 +45,17 @@ fn create_rosca_works() {
 #[test]
 fn join_rosca_works() {
     new_test_ext().execute_with(|| {
+        // Set initial timestamp
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants: BoundedVec<u64, ConstU32<149>> = vec![2, 3, 4].try_into().unwrap();
         Balances::mint_into(&1, 1000);
         Balances::mint_into(&2, 1000);
         Balances::mint_into(&3, 1000);
         Balances::mint_into(&4, 1000);
 
+        // This call should fail because the creator (1) is also in the invited list.
         assert_noop!(RoscaPallet::create_rosca(
             RuntimeOrigin::signed(1),
             false,
@@ -72,12 +81,14 @@ fn join_rosca_works() {
         ));
         assert_eq!(Balances::free_balance(1), 1000);
 
+        // Creator cannot join again
         assert_noop!(RoscaPallet::join_rosca( 
             RuntimeOrigin::signed(1), 
             0,
             None
         ), Error::<Test>::AlreadyJoined);
 
+        // Participants 2, 3, and 4 join successfully
         assert_ok!(RoscaPallet::join_rosca( 
             RuntimeOrigin::signed(2), 
             0,
@@ -90,13 +101,11 @@ fn join_rosca_works() {
             None
         ), Error::<Test>::AlreadyJoined);
 
-        
         assert_ok!(RoscaPallet::join_rosca( 
             RuntimeOrigin::signed(3), 
             0,
             None
         ));
-
 
         assert_ok!(RoscaPallet::join_rosca( 
             RuntimeOrigin::signed(4), 
@@ -104,13 +113,12 @@ fn join_rosca_works() {
             None
         ));
 
-
+        // Participant 5 is not invited
         assert_noop!(RoscaPallet::join_rosca( 
             RuntimeOrigin::signed(5), 
             0,
             None
         ), Error::<Test>::NotInvited);
-
     })
 }
 
@@ -119,11 +127,15 @@ fn join_rosca_works() {
 fn leave_rosca_works() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants: BoundedVec<u64, ConstU32<149>> = vec![2, 3, 4].try_into().unwrap();
         Balances::mint_into(&1, 1000);
         Balances::mint_into(&2, 1000);
         Balances::mint_into(&3, 1000);
         Balances::mint_into(&4, 1000);
+
+        // This should fail because threshold is too high
         assert_err!(RoscaPallet::create_rosca(
             RuntimeOrigin::signed(1),
             false,
@@ -155,7 +167,6 @@ fn leave_rosca_works() {
         ));
 
         assert_eq!(RoscaPallet::participants_count(0), Some(0));
-
     })
 }
 
@@ -163,14 +174,17 @@ fn leave_rosca_works() {
 #[test]
 fn contribute_to_rosca_works() {
     new_test_ext().execute_with(|| {
+        // Set initial block and timestamp
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants_vec = vec![2, 3];
         let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
         Balances::mint_into(&1, 1000);
         Balances::mint_into(&2, 1000);
         Balances::mint_into(&3, 1000);
 
-        // Create ROSCA
+        // Create ROSCA with contribution_frequency = 50 and start_by_timestamp = 51.
         assert_ok!(RoscaPallet::create_rosca(
             RuntimeOrigin::signed(1),
             false,
@@ -188,11 +202,12 @@ fn contribute_to_rosca_works() {
             assert_ok!(RoscaPallet::join_rosca(RuntimeOrigin::signed(*participant), 0, None));
         }
 
-        // Start the ROSCA
+        // Start the ROSCA before the start_by_timestamp (current timestamp = 1)
         assert_ok!(RoscaPallet::start_rosca(RuntimeOrigin::signed(1), 0));
 
-        // First contribution round
-        // Eligible claimant is participant 1
+        // First contribution round:
+        // Eligible claimant is determined by the start order.
+        // For this test, we assume the eligible claimant is not the one contributing.
         for &participant in &[2, 3] {
             assert_ok!(RoscaPallet::contribute_to_rosca(RuntimeOrigin::signed(participant), 0));
         }
@@ -202,11 +217,11 @@ fn contribute_to_rosca_works() {
         assert_eq!(Balances::free_balance(2), 1000 - 100);
         assert_eq!(Balances::free_balance(3), 1000 - 100);
 
-        // Advance to next period
-        System::set_block_number(51);
+        // Advance timestamp to simulate next period (e.g., timestamp becomes 51)
+        pallet_timestamp::Pallet::<Test>::set_timestamp(51);
 
-        // Second contribution round
-        // Eligible claimant is participant 2
+        // Second contribution round: eligible claimant changes.
+        // Assume eligible claimant becomes participant 2.
         for &participant in &[1, 3] {
             assert_ok!(RoscaPallet::contribute_to_rosca(RuntimeOrigin::signed(participant), 0));
         }
@@ -216,11 +231,11 @@ fn contribute_to_rosca_works() {
         assert_eq!(Balances::free_balance(1), 1000 + 200 - 100); // Contributed 100
         assert_eq!(Balances::free_balance(3), 1000 - 100 - 100);
 
-        // Advance to next period
-        System::set_block_number(101);
+        // Advance timestamp to simulate third round (e.g., timestamp becomes 101)
+        pallet_timestamp::Pallet::<Test>::set_timestamp(101);
 
-        // Third contribution round
-        // Eligible claimant is participant 3
+        // Third contribution round:
+        // Assume eligible claimant becomes participant 3.
         for &participant in &[1, 2] {
             assert_ok!(RoscaPallet::contribute_to_rosca(RuntimeOrigin::signed(participant), 0));
         }
@@ -235,10 +250,14 @@ fn contribute_to_rosca_works() {
     });
 }
 
+
 #[test]
 fn manually_end_rosca_works() {
     new_test_ext().execute_with(|| {
+        // Set initial block and timestamp
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants_vec = vec![2, 3];
         let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
         Balances::mint_into(&1, 1000);
@@ -267,8 +286,8 @@ fn manually_end_rosca_works() {
             assert_ok!(RoscaPallet::contribute_to_rosca(RuntimeOrigin::signed(participant), 0));
         }
 
-        // Advance to a block beyond the final pay block
-        System::set_block_number(200);
+        // Advance timestamp beyond the final pay timestamp (e.g., set to 200)
+        pallet_timestamp::Pallet::<Test>::set_timestamp(200);
 
         // Manually end the ROSCA
         assert_ok!(RoscaPallet::manually_end_rosca(RuntimeOrigin::signed(1), 0));
@@ -283,6 +302,8 @@ fn manually_end_rosca_works() {
 fn claim_security_deposit_works() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants_vec = vec![2, 3];
         let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
         Balances::mint_into(&1, 1000);
@@ -310,20 +331,24 @@ fn claim_security_deposit_works() {
         assert_ok!(RoscaPallet::add_to_security_deposit(RuntimeOrigin::signed(1), 0, 50));
         assert_ok!(RoscaPallet::add_to_security_deposit(RuntimeOrigin::signed(2), 0, 50));
 
-        // Complete the ROSCA
-        System::set_block_number(200);
+        // Advance timestamp beyond final pay (e.g., 200)
+        pallet_timestamp::Pallet::<Test>::set_timestamp(200);
         assert_ok!(RoscaPallet::manually_end_rosca(RuntimeOrigin::signed(1), 0));
 
-        // Claim security deposit
+        // Claim security deposit for participant 1
         assert_ok!(RoscaPallet::claim_security_deposit(RuntimeOrigin::signed(1), 0));
-        assert_eq!(Balances::free_balance(1), 1000 - 50 + 50); // Should get back the deposit
+        // The balance should reflect that the deposit is returned.
+        assert_eq!(Balances::free_balance(1), 1000);
     });
 }
+
 
 #[test]
 fn add_to_security_deposit_works() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants_vec = vec![2, 3];
         let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
         Balances::mint_into(&1, 1000);
@@ -349,15 +374,18 @@ fn add_to_security_deposit_works() {
         let deposit = RoscaPallet::security_deposit(0, &1).expect("Deposit should be recorded");
         assert_eq!(deposit, 100);
 
-        // Check balance
-        assert_eq!(Balances::free_balance(1), 900); // 1000 - 100
+        // Check balance (should be 1000 - 100)
+        assert_eq!(Balances::free_balance(1), 900);
     });
 }
+
 
 #[test]
 fn contribute_twice_in_same_period_fails() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants_vec = vec![2, 3];
         let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
         Balances::mint_into(&1, 1000);
@@ -381,10 +409,10 @@ fn contribute_twice_in_same_period_fails() {
         }
         assert_ok!(RoscaPallet::start_rosca(RuntimeOrigin::signed(1), 0));
 
-        // Participant contributes
+        // Participant 2 contributes once
         assert_ok!(RoscaPallet::contribute_to_rosca(RuntimeOrigin::signed(2), 0));
 
-        // Participant tries to contribute again in the same period
+        // Participant 2 tries to contribute again in the same period
         assert_noop!(
             RoscaPallet::contribute_to_rosca(RuntimeOrigin::signed(2), 0),
             Error::<Test>::AlreadyContributed
@@ -392,10 +420,13 @@ fn contribute_twice_in_same_period_fails() {
     });
 }
 
+
 #[test]
 fn start_rosca_already_active_fails() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants_vec = vec![2, 3];
         let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
         Balances::mint_into(&1, 1000);
@@ -414,7 +445,7 @@ fn start_rosca_already_active_fails() {
         ));
         assert_ok!(RoscaPallet::start_rosca(RuntimeOrigin::signed(1), 0));
 
-        // Attempt to start the ROSCA again
+        // Attempt to start the ROSCA again should fail
         assert_noop!(
             RoscaPallet::start_rosca(RuntimeOrigin::signed(1), 0),
             Error::<Test>::RoscaAlreadyActive
@@ -422,10 +453,13 @@ fn start_rosca_already_active_fails() {
     });
 }
 
+
 #[test]
 fn join_rosca_without_invitation_fails() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants: BoundedVec<u64, ConstU32<149>> = vec![2, 3].try_into().unwrap();
         Balances::mint_into(&1, 1000);
         Balances::mint_into(&4, 1000);
@@ -451,10 +485,14 @@ fn join_rosca_without_invitation_fails() {
     });
 }
 
+
 #[test]
 fn contribute_after_final_pay_triggers_default_count() {
     new_test_ext().execute_with(|| {
         System::set_block_number(1);
+        // Set initial timestamp to 1
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
         let participants_vec = vec![2, 3];
         let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
         Balances::mint_into(&1, 1000);
@@ -478,12 +516,10 @@ fn contribute_after_final_pay_triggers_default_count() {
         }
         assert_ok!(RoscaPallet::start_rosca(RuntimeOrigin::signed(1), 0));
 
-        // Advance to a block beyond the final pay block
-        System::set_block_number(200);
+        // Advance timestamp beyond final pay timestamp (e.g., set to 200)
+        pallet_timestamp::Pallet::<Test>::set_timestamp(200);
 
-        // Participant tries to contribute
-        assert_ok!(
-            RoscaPallet::contribute_to_rosca(RuntimeOrigin::signed(2), 0)
-        );
+        // Participant 2 contributes after final pay timestamp
+        assert_ok!(RoscaPallet::contribute_to_rosca(RuntimeOrigin::signed(2), 0));
     });
 }

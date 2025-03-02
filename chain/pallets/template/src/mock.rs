@@ -29,6 +29,8 @@ mod test_runtime {
 	pub type Balances = pallet_balances;
 	#[runtime::pallet_index(2)]
 	pub type RoscaPallet = crate;
+	#[runtime::pallet_index(3)]
+    pub type Timestamp = pallet_timestamp;
 }
 
 #[derive_impl(frame_system::config_preludes::TestDefaultConfig)]
@@ -70,7 +72,25 @@ impl crate::Config for Test {
 	type StringLimit = ConstU32<50>;
 }
 
+parameter_types! {
+    pub const MinimumPeriod: u64 = 5; // Example: 5ms (adjust as needed for tests)
+}
+
+// Implement pallet_timestamp for Test.
+impl pallet_timestamp::Config for Test {
+    // For testing, a simple u64 is sufficient.
+    type Moment = u64;
+    // We don't need any on-set logic here.
+    type OnTimestampSet = ();
+    // The minimum period between timestamps.
+    type MinimumPeriod = MinimumPeriod;
+    // No weight info is needed for testing.
+    type WeightInfo = ();
+}
+
+
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	GenesisConfig::<Test>::default().build_storage().unwrap().into()
 }
+
