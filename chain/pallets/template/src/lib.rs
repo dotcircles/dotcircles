@@ -255,6 +255,8 @@ pub mod pallet {
 		MultiplyError,
 		DivisionError,
 		ArithmeticError,
+		ContributionAmountMustBePositive,
+		FrequencyMustBePositive,
 		/// Rosca start by timestamp must be in the future
 		StartByTimestampMustBeFuture,
 		/// Too many proposed participants
@@ -269,8 +271,10 @@ pub mod pallet {
 		AlreadyJoined,
 		/// Rosca already active
 		RoscaAlreadyActive,
-		/// Rosca security depositio not found
+		/// Rosca security deposit not found
 		SecurityDepositNotFound,
+		/// Security Deposit Zero
+		SecurityDepositIsZero,
 		/// All Rosca positions filled
 		AllPositionsFilled,
 		/// Rosca participant not found
@@ -315,6 +319,8 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		pub fn create_rosca(origin: OriginFor<T>, random_order: bool, invited_pre_verified_participants: BoundedVec<AccountIdOf<T>, T::MaxInvitedParticipants>, minimum_participant_threshold: u32, contribution_amount: u32, contribution_frequency: <T as pallet_timestamp::Config>::Moment, start_by_timestamp: <T as pallet_timestamp::Config>::Moment, position: Option<u32>, name: BoundedVec<u8, <T as Config>::StringLimit>) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
+			ensure!(contribution_amount > 0, Error::<T>::ContributionAmountMustBePositive);
+			ensure!(contribution_frequency > T::Moment::from(0u32), Error::<T>::FrequencyMustBePositive);
 			ensure!(T::MaxInvitedParticipants::get() < T::MaxParticipants::get(), Error::<T>::ArithmeticError);
 			ensure!(!invited_pre_verified_participants.contains(&signer), Error::<T>::CantInviteSelf);
 			let mut invited_pre_verified_participants = invited_pre_verified_participants.into_inner();
@@ -544,89 +550,23 @@ pub mod pallet {
 
 
 			while current_timestamp >= next_pay_by_timestamp {
-
-				for participant in active_rosca_participants_order.iter() {
-					if *participant == eligible_claimant {
-						continue
-					}
-					if Self::current_contributors(rosca_id, participant).is_none() {
-						// They might be defaulter and get their security deposit to see if they have a buffer.
-						let mut participant_deposit = Self::security_deposit(rosca_id, participant).unwrap_or(0);
-						let mut defaulter = false;
-						if participant_deposit < rosca.contribution_amount {
-							defaulter = true;
-							if participant_deposit > 0 {
-								T::NativeBalance::transfer(&rosca_account_id, &eligible_claimant.clone(), participant_deposit.into(), Expendable)?;
-								RoscaSecurityDeposits::<T>::insert(rosca_id, participant, 0);
-
-								Self::deposit_event(Event::<T>::DepositDeducted {
-									rosca_id,
-									contributor: participant.clone(),
-									recipient: eligible_claimant.clone(),
-									amount: participant_deposit.into(),
-									sufficient: false,
-								});
-							}
-						} else {
-							// transfer the amount
-							T::NativeBalance::transfer(&rosca_account_id, &eligible_claimant.clone(), rosca.contribution_amount.into(), Expendable)?;
-							let deposit_remaining_after_transfer = participant_deposit.checked_sub(rosca.contribution_amount).unwrap_or(0);
-							RoscaSecurityDeposits::<T>::insert(rosca_id, participant, &deposit_remaining_after_transfer);
-							Self::deposit_event(Event::<T>::DepositDeducted {
-								rosca_id,
-								contributor: participant.clone(),
-								recipient: eligible_claimant.clone(),
-								amount: rosca.contribution_amount.into(),
-								sufficient: true
-							});
-						}
-
-						
-						if defaulter {
-							// They are a defaulter and we should increment their default count
-							DefaultCount::<T>::mutate(rosca_id, &participant, |count| *count = count.saturating_add(1));
-							Self::deposit_event(Event::<T>::ParticipantDefaulted {
-								rosca_id,
-								participant: participant.clone(),
-							});
-						}  // Else they had a buffer deposit and therefore not a defaulter just forgetful. 
-					}
-				}
-
-
-				next_pay_by_timestamp = next_pay_by_timestamp.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
-
-
-				if next_pay_by_timestamp > final_pay_by_timestamp {
-					// return early since everything has been processed and next_pay_by_timestamp > final_pay_by_timestamp
-					CompletedRoscas::<T>::insert(rosca_id, ());
-					ActiveRoscas::<T>::remove(rosca_id);
-					Self::deposit_event(Event::<T>::RoscaComplete {
-						rosca_id,
-					});
-					return Ok(());
-				}
-
-				NextPayByTimestamp::<T>::insert(rosca_id, next_pay_by_timestamp);
-
-				eligible_claimant = active_rosca_participants_order[active_rosca_participants_order.len() - 1 as usize].clone();
-				EligibleClaimant::<T>::insert(rosca_id, eligible_claimant.clone());
-				active_rosca_participants_order.try_rotate_right(1).map_err(|_| Error::<T>::ArithmeticError)?;
-				ActiveRoscaParticipantsOrder::<T>::insert(rosca_id, active_rosca_participants_order.clone());
-				// Clear contributions count and contributors
-				CurrentContributors::<T>::clear_prefix(rosca_id, (active_rosca_participants_order.len() - 1) as u32, None);
-				CurrentContribtionCount::<T>::insert(rosca_id, 0);
-
-				Self::deposit_event(Event::<T>::NewRoundStarted {
-					rosca_id,
-					new_eligible_recipient: eligible_claimant.clone(),
-				});
-
+				// Process any missed contributions for the current round.
+				Self::process_defaulters(rosca_id)?;
+				// Advance the round: update timing, rotate the order, and clear contributions.
+				Self::advance_rosca_round(rosca_id)?;
+				// Check if, after advancing, the ROSCA should be marked complete.
+				Self::check_and_complete_rosca(rosca_id)?;
+				// Update local variable for the loop condition.
+				next_pay_by_timestamp = Self::next_pay_by_timestamp(rosca_id)
+					.ok_or(Error::<T>::NoNextPayByTimestamp)?;
+				active_rosca_participants_order = Self::active_rosca_participants_order(rosca_id)
+					.ok_or(Error::<T>::RoscaParticipantsNotFound)?;
+				eligible_claimant = Self::eligible_claimant(rosca_id)
+					.ok_or(Error::<T>::NoEligbleClaimant)?;
 			}
 
 			// If we are here we must have caught up to the current round
-
-
+			
 			T::NativeBalance::transfer(&signer, &eligible_claimant, rosca.contribution_amount.into(), Expendable)?;
 			CurrentContributors::<T>::insert(rosca_id, &signer, ());
 			let current_contribution_count = Self::current_contribution_count(rosca_id).checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
@@ -674,98 +614,44 @@ pub mod pallet {
 			Ok(())
 		}
 
-
 		#[pallet::call_index(5)]
 		pub fn manually_end_rosca(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
-			let signer = ensure_signed(origin)?;
-
+			let _signer = ensure_signed(origin)?;
 			let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
-			let mut eligible_claimant = Self::eligible_claimant(rosca_id).ok_or(Error::<T>::NoEligbleClaimant)?;
-
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
-			let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id).ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
-
+			let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id)
+				.ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
+			
+			// Ensure the final pay-by timestamp is in the past.
 			ensure!(current_timestamp > final_pay_by_timestamp, Error::<T>::FinalPayByTimestampMustBePast);
 
-
-
-			let mut next_pay_by_timestamp = Self::next_pay_by_timestamp(rosca_id).ok_or(Error::<T>::NoNextPayByTimestamp)?;
-
-			let mut active_rosca_participants_order = Self::active_rosca_participants_order(rosca_id).ok_or(Error::<T>::RoscaParticipantsNotFound)?;
-
-			let rosca_account_id = Self::rosca_account_id(rosca_id);
-
-			while next_pay_by_timestamp <= final_pay_by_timestamp {
-
-				for participant in active_rosca_participants_order.iter() {
-					if *participant == eligible_claimant {
-						continue
-					}
-					if Self::current_contributors(rosca_id, participant).is_none() {
-						// They might be defaulter and get their security deposit to see if they have a buffer.
-						let mut participant_deposit = Self::security_deposit(rosca_id, participant).unwrap_or(0);
-						let mut defaulter = false;
-						if participant_deposit < rosca.contribution_amount {
-							defaulter = true;
-							if participant_deposit > 0 {
-								T::NativeBalance::transfer(&rosca_account_id, &eligible_claimant.clone(), participant_deposit.into(), Expendable)?;
-								RoscaSecurityDeposits::<T>::insert(rosca_id, participant, 0);
-								Self::deposit_event(Event::<T>::DepositDeducted {
-									rosca_id,
-									contributor: participant.clone(),
-									recipient: eligible_claimant.clone(),
-									amount: participant_deposit.into(),
-									sufficient: false
-								});
-							}
-						} else {
-							// transfer the amount
-							T::NativeBalance::transfer(&rosca_account_id, &eligible_claimant.clone(), rosca.contribution_amount.into(), Expendable)?;
-							let deposit_remaining_after_transfer = participant_deposit.checked_sub(rosca.contribution_amount).unwrap_or(0);
-							RoscaSecurityDeposits::<T>::insert(rosca_id, participant, &deposit_remaining_after_transfer);
-							Self::deposit_event(Event::<T>::DepositDeducted {
-								rosca_id,
-								contributor: participant.clone(),
-								recipient: eligible_claimant.clone(),
-								amount: rosca.contribution_amount.into(),
-								sufficient: true
-							});
-						}
-
-						
-						if defaulter {
-							// They are a defaulter and we should increment their default count
-							DefaultCount::<T>::mutate(rosca_id, &participant, |count| *count = count.saturating_add(1));
-							Self::deposit_event(Event::<T>::ParticipantDefaulted {
-								rosca_id,
-								participant: participant.clone(),
-							});
-						}  // Else they had a buffer deposit and therefore not a defaulter just forgetful. 
-					}
+			// Process rounds until the next payment timestamp exceeds the final pay-by timestamp.
+			while let Some(next_pay_by) = Self::next_pay_by_timestamp(rosca_id) {
+				if next_pay_by <= final_pay_by_timestamp {
+					// Process missed contributions and update round state.
+					Self::process_defaulters(rosca_id)?;
+					Self::advance_rosca_round(rosca_id)?;
+				} else {
+					break;
 				}
-
-				next_pay_by_timestamp = next_pay_by_timestamp.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
-				eligible_claimant = active_rosca_participants_order[active_rosca_participants_order.len() - 1 as usize].clone();
-				EligibleClaimant::<T>::insert(rosca_id, eligible_claimant.clone());
-				active_rosca_participants_order.try_rotate_right(1).map_err(|_| Error::<T>::ArithmeticError)?;
-				Self::deposit_event(Event::<T>::NewRoundStarted {
-					rosca_id,
-					new_eligible_recipient: eligible_claimant.clone(),
-				});
 			}
 
-			ensure!(next_pay_by_timestamp == final_pay_by_timestamp.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?, Error::<T>::ArithmeticError);
+			// Check that we've processed the final round:
+			let next_pay_by = Self::next_pay_by_timestamp(rosca_id)
+				.ok_or(Error::<T>::NoNextPayByTimestamp)?;
+			ensure!(
+				next_pay_by == final_pay_by_timestamp.checked_add(&rosca.contribution_frequency)
+					.ok_or(Error::<T>::ArithmeticOverflow)?,
+				Error::<T>::ArithmeticError
+			);
 
+			// Mark the ROSCA as complete.
 			CompletedRoscas::<T>::insert(rosca_id, ());
 			ActiveRoscas::<T>::remove(rosca_id);
-
-			// End the Rosca 
-			Self::deposit_event(Event::<T>::RoscaComplete {
-				rosca_id,
-			});
-
+			Self::deposit_event(Event::<T>::RoscaComplete { rosca_id });
 			Ok(())
 		}
+
 
 		#[pallet::call_index(6)]
 		pub fn claim_security_deposit(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
@@ -776,6 +662,7 @@ pub mod pallet {
 			ensure!(current_timestamp > final_pay_by_timestamp, Error::<T>::FinalPayByTimestampMustBePast);
 			ensure!(Self::completed_roscas(rosca_id).is_some(), Error::<T>::RoscaNotCompleted);
 			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).ok_or(Error::<T>::SecurityDepositNotFound)?;
+			ensure!(participant_deposit > 0, Error::<T>::SecurityDepositIsZero);
 			let rosca_account_id = Self::rosca_account_id(rosca_id);
 			T::NativeBalance::transfer(&rosca_account_id, &signer, participant_deposit.into(), Expendable)?;
 			RoscaSecurityDeposits::<T>::remove(rosca_id, &signer);
@@ -846,3 +733,139 @@ impl<T: Config> Pallet<T> {
 
 	
 }
+
+impl<T: Config> Pallet<T> {
+    /// Processes missed contributions for the current round.
+    /// For each participant (other than the eligible claimant) who has not contributed,
+    /// check their security deposit and, if insufficient, mark them as defaulters.
+    fn process_defaulters(rosca_id: u32) -> DispatchResult {
+        // Retrieve required state items.
+        let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
+        let eligible_claimant = Self::eligible_claimant(rosca_id).ok_or(Error::<T>::NoEligbleClaimant)?;
+        let active_order = Self::active_rosca_participants_order(rosca_id)
+            .ok_or(Error::<T>::RoscaParticipantsNotFound)?;
+        let rosca_account_id = Self::rosca_account_id(rosca_id);
+
+        // Iterate through each participant.
+        for participant in active_order.iter() {
+            if *participant == eligible_claimant {
+                continue; // Skip the eligible claimant.
+            }
+            if Self::current_contributors(rosca_id, participant).is_none() {
+                // Participant has not contributed in the current round.
+                let mut participant_deposit = Self::security_deposit(rosca_id, participant).unwrap_or(0);
+                let mut defaulter = false;
+
+                if participant_deposit < rosca.contribution_amount {
+                    // Insufficient deposit: mark as defaulter.
+                    defaulter = true;
+                    if participant_deposit > 0 {
+                        // Transfer whatever deposit is available.
+                        T::NativeBalance::transfer(
+                            &rosca_account_id,
+                            &eligible_claimant,
+                            participant_deposit.into(),
+                            Expendable,
+                        )?;
+                        RoscaSecurityDeposits::<T>::insert(rosca_id, participant, 0);
+                        Self::deposit_event(Event::<T>::DepositDeducted {
+                            rosca_id,
+                            contributor: participant.clone(),
+                            recipient: eligible_claimant.clone(),
+                            amount: participant_deposit.into(),
+                            sufficient: false,
+                        });
+                    }
+                } else {
+                    // Sufficient deposit: deduct the fixed contribution amount.
+                    T::NativeBalance::transfer(
+                        &rosca_account_id,
+                        &eligible_claimant,
+                        rosca.contribution_amount.into(),
+                        Expendable,
+                    )?;
+                    let remaining = participant_deposit
+                        .checked_sub(rosca.contribution_amount)
+                        .unwrap_or(0);
+                    RoscaSecurityDeposits::<T>::insert(rosca_id, participant, remaining);
+                    Self::deposit_event(Event::<T>::DepositDeducted {
+                        rosca_id,
+                        contributor: participant.clone(),
+                        recipient: eligible_claimant.clone(),
+                        amount: rosca.contribution_amount.into(),
+                        sufficient: true,
+                    });
+                }
+
+                if defaulter {
+                    DefaultCount::<T>::mutate(rosca_id, participant, |count| {
+                        *count = count.saturating_add(1)
+                    });
+                    Self::deposit_event(Event::<T>::ParticipantDefaulted {
+                        rosca_id,
+                        participant: participant.clone(),
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Advances the ROSCA round.
+    /// This updates the next payment timestamp, rotates the order of participants,
+    /// updates the eligible claimant, and clears the current round’s contributions.
+    fn advance_rosca_round(rosca_id: u32) -> DispatchResult {
+        let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
+        let mut next_pay_by_timestamp = Self::next_pay_by_timestamp(rosca_id)
+            .ok_or(Error::<T>::NoNextPayByTimestamp)?;
+
+        // Advance to the next round by adding the contribution frequency.
+        next_pay_by_timestamp = next_pay_by_timestamp
+            .checked_add(&rosca.contribution_frequency)
+            .ok_or(Error::<T>::ArithmeticOverflow)?;
+        NextPayByTimestamp::<T>::insert(rosca_id, next_pay_by_timestamp);
+
+        // Rotate the active participants order and update the eligible claimant.
+		let mut active_order = Self::active_rosca_participants_order(rosca_id)
+            .ok_or(Error::<T>::RoscaParticipantsNotFound)?;
+
+		let new_eligible = active_order[active_order.len() - 1].clone();
+        EligibleClaimant::<T>::insert(rosca_id, new_eligible.clone());
+
+        active_order
+            .try_rotate_right(1)
+            .map_err(|_| Error::<T>::ArithmeticError)?;
+        ActiveRoscaParticipantsOrder::<T>::insert(rosca_id, active_order.clone());
+        
+
+        // Clear the contributions and reset the contribution count.
+        let count_to_clear = (active_order.len() - 1) as u32;
+        CurrentContributors::<T>::clear_prefix(rosca_id, count_to_clear, None);
+        CurrentContribtionCount::<T>::insert(rosca_id, 0);
+
+        // Emit an event to signal the start of a new round.
+        Self::deposit_event(Event::<T>::NewRoundStarted {
+            rosca_id,
+            new_eligible_recipient: new_eligible,
+        });
+        Ok(())
+    }
+
+    /// Checks if the ROSCA should be completed and, if so, finalizes it.
+    fn check_and_complete_rosca(rosca_id: u32) -> DispatchResult {
+        let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
+        let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id)
+            .ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
+        let next_pay_by_timestamp = Self::next_pay_by_timestamp(rosca_id)
+            .ok_or(Error::<T>::NoNextPayByTimestamp)?;
+
+        if next_pay_by_timestamp > final_pay_by_timestamp {
+            // If the next payment time is past the final deadline, complete the ROSCA.
+            CompletedRoscas::<T>::insert(rosca_id, ());
+            ActiveRoscas::<T>::remove(rosca_id);
+            Self::deposit_event(Event::<T>::RoscaComplete { rosca_id });
+        }
+        Ok(())
+    }
+}
+
