@@ -15,9 +15,6 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-// use log::{debug, error, info, trace, warn};
-
-
 
 use frame_support::pallet_prelude::DispatchResult;
 use sp_runtime::Vec;
@@ -138,21 +135,12 @@ pub mod pallet {
 	#[pallet::getter(fn rosca_details)]
 	pub(super) type PendingRoscaDetails<T> = StorageMap<_, Blake2_128Concat, u32, RoscaDetails<T>, OptionQuery>;
 
-	// The cut off block for the current period. Payments must be made before this block starts in order to count for a current period
-	// #[pallet::storage]
-	// #[pallet::getter(fn next_pay_by_block)]
-	// pub(super) type NextPayByBlock<T> = StorageMap<_, Blake2_128Concat, u32, BlockNumberFor<T>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_pay_by_timestamp)]
 	pub(super) type NextPayByTimestamp<T> = StorageMap<_, Blake2_128Concat, u32, <T as pallet_timestamp::Config>::Moment, OptionQuery>;
 
-
-	// The cut off block for the last cycle of the Rosca.
-	// #[pallet::storage]
-	// #[pallet::getter(fn final_pay_by_block)]
-	// pub(super) type FinalPayByBlock<T> = StorageMap<_, Blake2_128Concat, u32, BlockNumberFor<T>, OptionQuery>;
-
+	// The cut off timestamp for the last cycle of the Rosca
 	#[pallet::storage]
 	#[pallet::getter(fn final_pay_by_timestamp)]
 	pub(super) type FinalPayByTimestamp<T> = StorageMap<_, Blake2_128Concat, u32, <T as pallet_timestamp::Config>::Moment, OptionQuery>;
@@ -183,22 +171,11 @@ pub mod pallet {
 	#[pallet::getter(fn default_count)]
 	pub type DefaultCount<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, AccountIdOf<T>, u32, ValueQuery>;
 
-	// #[pallet::hooks]
-	// impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-	// 	fn on_initialize(_now: BlockNumberFor<T>) -> Weight {
-	// 		let now = pallet_timestamp::Pallet::<T>::get();
-	// 		info!("✅ Current timestamp: {:?}", now);
-
-	// 		T::DbWeight::get().reads(1)
-	// 	}
-	// }
-
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A Rosca Created
-		// RoscaCreated { rosca_id: u32, contribution_amount: BalanceOf<T>, contribution_frequency: BlockNumberFor<T>, random_order: bool, name: BoundedVec<u8, <T as Config>::StringLimit>, number_of_participants: u32, minimum_participant_threshold: u32, start_by_block: BlockNumberFor<T>, eligible_participants: BoundedVec<AccountIdOf<T>, T::MaxParticipants>, creator: AccountIdOf<T> },
 		RoscaCreated { 
 			rosca_id: u32, 
 			contribution_amount: BalanceOf<T>, 
@@ -278,9 +255,8 @@ pub mod pallet {
 		MultiplyError,
 		DivisionError,
 		ArithmeticError,
-		/// Rosca start by block must be in the future
+		/// Rosca start by timestamp must be in the future
 		StartByTimestampMustBeFuture,
-		StartByBlockMustBeFuture,
 		/// Too many proposed participants
 		TooManyProposedParticipants,
 		/// Rosca position not valid
@@ -313,15 +289,12 @@ pub mod pallet {
 		NoEligbleClaimant,
 		/// Participant already contributed this round
 		AlreadyContributed,
-		/// No next pay by block
-		NoNextPayByBlock,
+		/// No next pay by timestamp
 		NoNextPayByTimestamp,
-		/// No final pay by block
-		FinalPayBlockNotFound,
+		/// No final pay by timestamp
 		FinalPayByTimestampNotFound,
-		/// Final pay by block must be past
+		/// Final pay by timestamp must be past
 		FinalPayByTimestampMustBePast,
-		FinalPayByBlockMustBePast,
 		/// Rosca not completed
 		RoscaNotCompleted,
 		/// Can't contribute beyond final pay by block
@@ -349,13 +322,12 @@ pub mod pallet {
 			invited_pre_verified_participants.dedup();
 
 
-			// let current_block = <frame_system::Pallet<T>>::block_number();
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
 			let position = position.unwrap_or(0);
 			let number_of_participants = invited_pre_verified_participants.len().checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)? as u32;
 			ensure!(minimum_participant_threshold <= number_of_participants, Error::<T>::ThresholdTooHigh);
 			ensure!(position < T::MaxParticipants::get(), Error::<T>::PositionTooLarge);
-			// ensure!(current_block < start_by_block, Error::<T>::StartByBlockMustBeFuture);
+
 			ensure!(current_timestamp < start_by_timestamp, Error::<T>::StartByTimestampMustBeFuture);
 			
 
@@ -418,9 +390,8 @@ pub mod pallet {
 			ensure!(Self::participants(rosca_id, &signer).is_none(), Error::<T>::AlreadyJoined);
 			ensure!(Self::invited_preverified_participants(rosca_id, &signer).is_some(), Error::<T>::NotInvited);
 			let pending_rosca = Self::rosca_details(rosca_id).ok_or(Error::<T>::RoscaNotFound)?;
-			// let current_block = <frame_system::Pallet<T>>::block_number();
+
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
-			// ensure!(current_block < pending_rosca.start_by_block, Error::<T>::StartByBlockMustBeFuture);
 			ensure!(current_timestamp < pending_rosca.start_by_timestamp, Error::<T>::StartByTimestampMustBeFuture);
 			
 			let mut pending_rosca_order = Self::pending_rosca_participants_order(rosca_id).ok_or(Error::<T>::RoscaNotFound)?;
@@ -465,7 +436,7 @@ pub mod pallet {
 			ensure!(Self::active_roscas(rosca_id).is_none(), Error::<T>::RoscaAlreadyActive);
 			let participant_index = Self::participants(rosca_id, &signer).ok_or(Error::<T>::NotAParticipant)?;
 			let pending_rosca = Self::rosca_details(rosca_id).ok_or(Error::<T>::RoscaNotFound)?;
-			// let current_block = <frame_system::Pallet<T>>::block_number();
+
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
 
 			let rosca_account_id = Self::rosca_account_id(rosca_id);
@@ -507,8 +478,6 @@ pub mod pallet {
 			let participant_index = Self::participants(rosca_id, &signer).ok_or(Error::<T>::NotAParticipant)?;
 			let pending_rosca = Self::rosca_details(rosca_id).ok_or(Error::<T>::RoscaNotFound)?;
 			let mut pending_rosca_order = Self::pending_rosca_participants_order(rosca_id).ok_or(Error::<T>::RoscaParticipantsNotFound)?;
-			// let current_block = <frame_system::Pallet<T>>::block_number();
-			// ensure!(current_block < pending_rosca.start_by_block, Error::<T>::StartByBlockMustBeFuture);
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
 			ensure!(current_timestamp < pending_rosca.start_by_timestamp, Error::<T>::StartByTimestampMustBeFuture);
 			let current_pending_participant_count = Self::participants_count(rosca_id).ok_or(Error::<T>::RoscaParticipantCountNotFound)?;
@@ -532,20 +501,12 @@ pub mod pallet {
 
 			ActiveRoscaParticipantsOrder::<T>::insert(rosca_id, active_rosca_order);
 
-			// let next_pay_by_block = current_block.checked_add(&pending_rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
-			// let mut final_pay_by_block: BlockNumberFor<T> = next_pay_by_block;
-			// for _ in 1..current_pending_participant_count {
-			// 	final_pay_by_block = final_pay_by_block.checked_add(&pending_rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
-			// }
 
 			let next_pay_by_timestamp = current_timestamp.checked_add(&pending_rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 			let mut final_pay_by_timestamp: <T as pallet_timestamp::Config>::Moment = next_pay_by_timestamp;
 			for _ in 1..current_pending_participant_count {
 				final_pay_by_timestamp = final_pay_by_timestamp.checked_add(&pending_rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 			}
-
-			// NextPayByBlock::<T>::insert(rosca_id, next_pay_by_block);
-			// FinalPayByBlock::<T>::insert(rosca_id, final_pay_by_block);
 
 			NextPayByTimestamp::<T>::insert(rosca_id, next_pay_by_timestamp);
 			FinalPayByTimestamp::<T>::insert(rosca_id, final_pay_by_timestamp);
@@ -572,9 +533,6 @@ pub mod pallet {
 			
 			ensure!(eligible_claimant != signer, Error::<T>::CantContributeToSelf);
 			ensure!(Self::current_contributors(rosca_id, &signer).is_none(), Error::<T>::AlreadyContributed);
-			// let current_block = frame_system::Pallet::<T>::block_number();
-			// let final_pay_by_block = Self::final_pay_by_block(rosca_id).ok_or(Error::<T>::FinalPayBlockNotFound)?;
-			// let mut next_pay_by_block = Self::next_pay_by_block(rosca_id).ok_or(Error::<T>::NoNextPayByBlock)?;
 
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
 			let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id).ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
@@ -585,7 +543,6 @@ pub mod pallet {
 			let rosca_account_id = Self::rosca_account_id(rosca_id);
 
 
-			// current_block = 39, next_pay_by_block = 11, final_pay_by_block = 41
 			while current_timestamp >= next_pay_by_timestamp {
 
 				for participant in active_rosca_participants_order.iter() {
@@ -636,13 +593,12 @@ pub mod pallet {
 					}
 				}
 
-				// next_pay_by_block = next_pay_by_block.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
+
 				next_pay_by_timestamp = next_pay_by_timestamp.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 
 
-				// if next_pay_by_block > final_pay_by_block {
 				if next_pay_by_timestamp > final_pay_by_timestamp {
-					// return early since everything has been processed and current_block > final_pay_block
+					// return early since everything has been processed and next_pay_by_timestamp > final_pay_by_timestamp
 					CompletedRoscas::<T>::insert(rosca_id, ());
 					ActiveRoscas::<T>::remove(rosca_id);
 					Self::deposit_event(Event::<T>::RoscaComplete {
@@ -651,7 +607,6 @@ pub mod pallet {
 					return Ok(());
 				}
 
-				// NextPayByBlock::<T>::insert(rosca_id, next_pay_by_block);
 				NextPayByTimestamp::<T>::insert(rosca_id, next_pay_by_timestamp);
 
 				eligible_claimant = active_rosca_participants_order[active_rosca_participants_order.len() - 1 as usize].clone();
@@ -688,12 +643,10 @@ pub mod pallet {
 			if current_contribution_count == (active_rosca_participants_order.len() - 1) as u32 {
 				// This means it's the final contribution for the round so we can progress
 
-				// next_pay_by_block = next_pay_by_block.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 				next_pay_by_timestamp = next_pay_by_timestamp.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 
-				// if next_pay_by_block > final_pay_by_block {
 				if next_pay_by_timestamp > final_pay_by_timestamp {
-					// Mean it was the final contribution of the final round
+					// Means it was the final contribution of the final round
 					CompletedRoscas::<T>::insert(rosca_id, ());
 					ActiveRoscas::<T>::remove(rosca_id);
 					Self::deposit_event(Event::<T>::RoscaComplete {
@@ -701,7 +654,7 @@ pub mod pallet {
 					});
 					return Ok(());
 				}
-				// NextPayByBlock::<T>::insert(rosca_id, next_pay_by_block);
+
 				NextPayByTimestamp::<T>::insert(rosca_id, next_pay_by_timestamp);
 
 				eligible_claimant = active_rosca_participants_order[active_rosca_participants_order.len() - 1 as usize].clone();
@@ -725,17 +678,16 @@ pub mod pallet {
 		#[pallet::call_index(5)]
 		pub fn manually_end_rosca(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
-			// let current_block = frame_system::Pallet::<T>::block_number();
+
 			let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
 			let mut eligible_claimant = Self::eligible_claimant(rosca_id).ok_or(Error::<T>::NoEligbleClaimant)?;
-			// let final_pay_by_block = Self::final_pay_by_block(rosca_id).ok_or(Error::<T>::FinalPayBlockNotFound)?;
+
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
 			let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id).ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
-			// ensure!(current_block > final_pay_by_block, Error::<T>::FinalPayByBlockMustBePast);
+
 			ensure!(current_timestamp > final_pay_by_timestamp, Error::<T>::FinalPayByTimestampMustBePast);
 
 
-			// let mut next_pay_by_block = Self::next_pay_by_block(rosca_id).ok_or(Error::<T>::NoNextPayByBlock)?;
 
 			let mut next_pay_by_timestamp = Self::next_pay_by_timestamp(rosca_id).ok_or(Error::<T>::NoNextPayByTimestamp)?;
 
@@ -792,7 +744,6 @@ pub mod pallet {
 					}
 				}
 
-				// next_pay_by_block = next_pay_by_block.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 				next_pay_by_timestamp = next_pay_by_timestamp.checked_add(&rosca.contribution_frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 				eligible_claimant = active_rosca_participants_order[active_rosca_participants_order.len() - 1 as usize].clone();
 				EligibleClaimant::<T>::insert(rosca_id, eligible_claimant.clone());
@@ -819,12 +770,9 @@ pub mod pallet {
 		#[pallet::call_index(6)]
 		pub fn claim_security_deposit(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
 			let signer = ensure_signed(origin)?;	
-			// let current_block = frame_system::Pallet::<T>::block_number();
-			// let final_pay_by_block = Self::final_pay_by_block(rosca_id).ok_or(Error::<T>::FinalPayBlockNotFound)?;
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
 			let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id).ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
 			
-			// ensure!(current_block > final_pay_by_block, Error::<T>::FinalPayByBlockMustBePast);
 			ensure!(current_timestamp > final_pay_by_timestamp, Error::<T>::FinalPayByTimestampMustBePast);
 			ensure!(Self::completed_roscas(rosca_id).is_some(), Error::<T>::RoscaNotCompleted);
 			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).ok_or(Error::<T>::SecurityDepositNotFound)?;
@@ -871,10 +819,9 @@ impl<T: Config> Pallet<T> {
 		let truncated_seed = blake2_128(block_hash.as_ref()); // Truncate to 16 bytes for the shuffle
 		
 		let mut rng_seed = truncated_seed;
-		// let mut rng_seed = &[0x02; 16];
 
-		let mut available_indices: Vec<usize> = (0..participants.len()).collect(); // change this
-		let mut shuffled_indices = Vec::with_capacity(participants.len()); // Use bounded vec?
+		let mut available_indices: Vec<usize> = (0..participants.len()).collect(); 
+		let mut shuffled_indices = Vec::with_capacity(participants.len());
 
 		while !available_indices.is_empty() {
 
