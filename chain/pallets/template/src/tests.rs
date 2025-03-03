@@ -740,3 +740,55 @@ fn test_rosca_completion_after_final_pay_by() {
         assert!(RoscaPallet::completed_roscas(0).is_some());
     });
 }
+
+#[test]
+fn creator_can_leave_before_start_and_rosca_can_still_start() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        pallet_timestamp::Pallet::<Test>::set_timestamp(1);
+
+        let creator = 1u64;
+        let participants_vec = vec![2, 3, 4];
+        let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
+
+        // Mint balances for all users
+        Balances::mint_into(&creator, 1000);
+        for participant in &participants_vec {
+            Balances::mint_into(participant, 1000);
+        }
+
+        // Creator creates the ROSCA
+        assert_ok!(RoscaPallet::create_rosca(
+            RuntimeOrigin::signed(creator),
+            false, // Not random order
+            participants.clone(),
+            3,      // Minimum threshold to start
+            100,    // Contribution amount
+            10,     // Frequency
+            50,     // Start timestamp
+            Some(0), 
+            bounded_vec![1] // Name placeholder
+        ));
+
+        // Creator immediately leaves
+        assert_ok!(RoscaPallet::leave_rosca(RuntimeOrigin::signed(creator), 0));
+
+        // Ensure the creator has been removed
+        assert_eq!(RoscaPallet::participants_count(0), Some(0));
+        assert_eq!(RoscaPallet::participants(0, &creator), None);
+
+        // Remaining participants join
+        for participant in &participants_vec {
+            assert_ok!(RoscaPallet::join_rosca(RuntimeOrigin::signed(*participant), 0, None));
+        }
+
+        // Ensure the participant count is now 3
+        assert_eq!(RoscaPallet::participants_count(0), Some(3));
+
+        // One participant starts the ROSCA
+        assert_ok!(RoscaPallet::start_rosca(RuntimeOrigin::signed(participants_vec[0]), 0));
+
+        // Ensure the ROSCA is now active
+        assert!(RoscaPallet::active_roscas(0).is_some());
+    });
+}
