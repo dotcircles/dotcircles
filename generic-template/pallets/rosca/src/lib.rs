@@ -164,7 +164,7 @@ pub mod pallet {
 	// Current number of contributions for this round for a given rosca id
 	#[pallet::storage]
 	#[pallet::getter(fn current_contribution_count)]
-	pub type CurrentContribtionCount<T: Config> = StorageMap<_, Blake2_128Concat, u32, u32, ValueQuery>;
+	pub type CurrentContributionCount<T: Config> = StorageMap<_, Blake2_128Concat, u32, u32, ValueQuery>;
 
 	// Counter for number of defaults by a participant
 	#[pallet::storage]
@@ -570,7 +570,7 @@ pub mod pallet {
 			T::NativeBalance::transfer(&signer, &eligible_claimant, rosca.contribution_amount.into(), Expendable)?;
 			CurrentContributors::<T>::insert(rosca_id, &signer, ());
 			let current_contribution_count = Self::current_contribution_count(rosca_id).checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
-			CurrentContribtionCount::<T>::insert(rosca_id, current_contribution_count);
+			CurrentContributionCount::<T>::insert(rosca_id, current_contribution_count);
 
 			Self::deposit_event(Event::<T>::ContributionMade {
 				rosca_id,
@@ -602,7 +602,7 @@ pub mod pallet {
 				active_rosca_participants_order.try_rotate_right(1).map_err(|_| Error::<T>::ArithmeticError)?;
 				ActiveRoscaParticipantsOrder::<T>::insert(rosca_id, active_rosca_participants_order.clone());
 				CurrentContributors::<T>::clear_prefix(rosca_id, (active_rosca_participants_order.len() - 1) as u32, None);
-				CurrentContribtionCount::<T>::insert(rosca_id, 0);
+				CurrentContributionCount::<T>::insert(rosca_id, 0);
 
 				Self::deposit_event(Event::<T>::NewRoundStarted {
 					rosca_id,
@@ -841,7 +841,7 @@ impl<T: Config> Pallet<T> {
         // Clear the contributions and reset the contribution count.
         let count_to_clear = (active_order.len() - 1) as u32;
         CurrentContributors::<T>::clear_prefix(rosca_id, count_to_clear, None);
-        CurrentContribtionCount::<T>::insert(rosca_id, 0);
+        CurrentContributionCount::<T>::insert(rosca_id, 0);
 
         // Emit an event to signal the start of a new round.
         Self::deposit_event(Event::<T>::NewRoundStarted {
