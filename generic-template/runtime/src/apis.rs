@@ -13,9 +13,6 @@ use sp_runtime::{
 use sp_std::prelude::Vec;
 use sp_version::RuntimeVersion;
 
-#[cfg(not(feature = "async-backing"))]
-use crate::Aura;
-#[cfg(feature = "async-backing")]
 use crate::{constants::SLOT_DURATION, types::ConsensusHook};
 use crate::{
     constants::VERSION,
@@ -27,10 +24,7 @@ use crate::{
 impl_runtime_apis! {
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
         fn slot_duration() -> sp_consensus_aura::SlotDuration {
-            #[cfg(feature = "async-backing")]
-            return sp_consensus_aura::SlotDuration::from_millis(SLOT_DURATION);
-            #[cfg(not(feature = "async-backing"))]
-            sp_consensus_aura::SlotDuration::from_millis(Aura::slot_duration())
+            sp_consensus_aura::SlotDuration::from_millis(SLOT_DURATION)
         }
 
         fn authorities() -> Vec<AuraId> {
@@ -171,7 +165,6 @@ impl_runtime_apis! {
         }
     }
 
-    #[cfg(feature = "async-backing")]
     impl cumulus_primitives_aura::AuraUnincludedSegmentApi<Block> for Runtime {
         fn can_build_upon(
             included_hash: <Block as BlockT>::Hash,

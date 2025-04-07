@@ -42,10 +42,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 /// up by `pallet_aura` to implement `fn slot_duration()`.
 ///
 /// Change this to adjust the block time.
-#[cfg(feature = "async-backing")]
 pub const MILLISECS_PER_BLOCK: u64 = 6000;
-#[cfg(not(feature = "async-backing"))]
-pub const MILLISECS_PER_BLOCK: u64 = 12000;
 
 // NOTE: Currently it is not possible to change the slot duration after the
 // chain has started. Attempting to do so will brick block production.
@@ -66,19 +63,13 @@ pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 /// We allow for 0.5 of a second of compute with a 12 second average block time.
 pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
-    #[cfg(feature = "async-backing")]
     WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
-    #[cfg(not(feature = "async-backing"))]
-    WEIGHT_REF_TIME_PER_SECOND.saturating_div(2),
     cumulus_primitives_core::relay_chain::MAX_POV_SIZE as u64,
 );
 
 /// Maximum number of blocks simultaneously accepted by the Runtime, not yet
 /// included into the relay chain.
-#[cfg(feature = "async-backing")]
 pub const UNINCLUDED_SEGMENT_CAPACITY: u32 = 3;
-#[cfg(not(feature = "async-backing"))]
-pub const UNINCLUDED_SEGMENT_CAPACITY: u32 = 1;
 /// How many parachain blocks are processed by the relay chain per parent.
 /// Limits the number of blocks authored per slot.
 pub const BLOCK_PROCESSING_VELOCITY: u32 = 1;
