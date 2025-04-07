@@ -90,86 +90,86 @@ pub mod pallet {
 	/// Currently active Rosca.
 	#[pallet::storage]
 	#[pallet::getter(fn active_roscas)]
-	pub(super) type ActiveRoscas<T> = StorageMap<_, Blake2_128Concat, u32, RoscaDetails<T>, OptionQuery>;
+	pub(super) type ActiveRoscas<T> = StorageMap<_, Blake2_128Concat, RoscaId, RoscaDetails<T>, OptionQuery>;
 
 	/// Completed Rosca
 	#[pallet::storage]
 	#[pallet::getter(fn completed_roscas)]
-	pub(super) type CompletedRoscas<T> = StorageMap<_, Blake2_128Concat, u32, (), OptionQuery>;
+	pub(super) type CompletedRoscas<T> = StorageMap<_, Blake2_128Concat, RoscaId, (), OptionQuery>;
 
 
 	// Mapping of Rosca Id and AccountId returning their prestart position index. This index could become inaccurate once the Rosca starts if 
 	// the Rosca starts with less than the max of participants. Once the Rosca is active this Map should be used for membership checks only.
 	#[pallet::storage]
 	#[pallet::getter(fn participants)]
-	pub(super) type RoscaParticipants<T> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, AccountIdOf<T>, u32, OptionQuery>;
+	pub(super) type RoscaParticipants<T> = StorageDoubleMap<_, Blake2_128Concat, RoscaId, Blake2_128Concat, AccountIdOf<T>, u32, OptionQuery>;
 
 	// Invited participants. Includes the rosca creator
 	#[pallet::storage]
 	#[pallet::getter(fn invited_preverified_participants)]
-	pub(super) type RoscaInvitedPreverifiedParticipants<T> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, AccountIdOf<T>, (), OptionQuery>;
+	pub(super) type RoscaInvitedPreverifiedParticipants<T> = StorageDoubleMap<_, Blake2_128Concat, RoscaId, Blake2_128Concat, AccountIdOf<T>, (), OptionQuery>;
 
 	// Number of participants in the Rosca
 	#[pallet::storage]
 	#[pallet::getter(fn participants_count)]
-	pub(super) type RoscaParticipantsCount<T> = StorageMap<_, Blake2_128Concat, u32, u32, OptionQuery>;
+	pub(super) type RoscaParticipantsCount<T> = StorageMap<_, Blake2_128Concat, RoscaId, u32, OptionQuery>;
 
 
 	// Mapping of RoscaId and AccountID to the total security deposit one has in the Rosca fund.
 	#[pallet::storage]
 	#[pallet::getter(fn security_deposit)]
-	pub(super) type RoscaSecurityDeposits<T> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, AccountIdOf<T>, u32, OptionQuery>;
+	pub(super) type RoscaSecurityDeposits<T> = StorageDoubleMap<_, Blake2_128Concat, RoscaId, Blake2_128Concat, AccountIdOf<T>, u32, OptionQuery>;
 
 	// The claim order of participants for an unstarted Rosca.
 	#[pallet::storage]
 	#[pallet::getter(fn pending_rosca_participants_order)]
-	pub(super) type PendingRoscaParticipantsOrder<T> = StorageMap<_, Blake2_128Concat, u32, BoundedVec<Option<AccountIdOf<T>>, <T as pallet::Config>::MaxParticipants>, OptionQuery>;
+	pub(super) type PendingRoscaParticipantsOrder<T> = StorageMap<_, Blake2_128Concat, RoscaId, BoundedVec<Option<AccountIdOf<T>>, <T as pallet::Config>::MaxParticipants>, OptionQuery>;
 
 	// The claim order of participants for a started Rosca.
 	#[pallet::storage]
 	#[pallet::getter(fn active_rosca_participants_order)]
-	pub(super) type ActiveRoscaParticipantsOrder<T> = StorageMap<_, Blake2_128Concat, u32, BoundedVec<AccountIdOf<T>, <T as pallet::Config>::MaxParticipants>, OptionQuery>;
+	pub(super) type ActiveRoscaParticipantsOrder<T> = StorageMap<_, Blake2_128Concat, RoscaId, BoundedVec<AccountIdOf<T>, <T as pallet::Config>::MaxParticipants>, OptionQuery>;
 
 	// Rosca that have been proposed but not yet started
 	#[pallet::storage]
 	#[pallet::getter(fn rosca_details)]
-	pub(super) type PendingRoscaDetails<T> = StorageMap<_, Blake2_128Concat, u32, RoscaDetails<T>, OptionQuery>;
+	pub(super) type PendingRoscaDetails<T> = StorageMap<_, Blake2_128Concat, RoscaId, RoscaDetails<T>, OptionQuery>;
 
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_pay_by_timestamp)]
-	pub(super) type NextPayByTimestamp<T> = StorageMap<_, Blake2_128Concat, u32, <T as pallet_timestamp::Config>::Moment, OptionQuery>;
+	pub(super) type NextPayByTimestamp<T> = StorageMap<_, Blake2_128Concat, RoscaId, <T as pallet_timestamp::Config>::Moment, OptionQuery>;
 
 	// The cut off timestamp for the last cycle of the Rosca
 	#[pallet::storage]
 	#[pallet::getter(fn final_pay_by_timestamp)]
-	pub(super) type FinalPayByTimestamp<T> = StorageMap<_, Blake2_128Concat, u32, <T as pallet_timestamp::Config>::Moment, OptionQuery>;
+	pub(super) type FinalPayByTimestamp<T> = StorageMap<_, Blake2_128Concat, RoscaId, <T as pallet_timestamp::Config>::Moment, OptionQuery>;
 
 
 	// The account of the currently eligible recipient of the pot
 	#[pallet::storage]
 	#[pallet::getter(fn eligible_claimant)]
-	pub(super) type EligibleClaimant<T> = StorageMap<_, Blake2_128Concat, u32, AccountIdOf<T>, OptionQuery>;
+	pub(super) type EligibleClaimant<T> = StorageMap<_, Blake2_128Concat, RoscaId, AccountIdOf<T>, OptionQuery>;
 
 	// The account address for a given Rosca.
 	#[pallet::storage]
 	#[pallet::getter(fn rosca_account)]
-	pub type RoscaAccounts<T: Config> = StorageMap<_, Blake2_128Concat, u32, T::AccountId, OptionQuery>;
+	pub type RoscaAccounts<T: Config> = StorageMap<_, Blake2_128Concat, RoscaId, T::AccountId, OptionQuery>;
 
 	// Double Map of rosca_id, participant => true/false for current Rosca cycle. 
 	#[pallet::storage]
 	#[pallet::getter(fn current_contributors)]
-	pub type CurrentContributors<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, AccountIdOf<T>, (), OptionQuery>;
+	pub type CurrentContributors<T: Config> = StorageDoubleMap<_, Blake2_128Concat, RoscaId, Blake2_128Concat, AccountIdOf<T>, (), OptionQuery>;
 
 	// Current number of contributions for this round for a given rosca id
 	#[pallet::storage]
 	#[pallet::getter(fn current_contribution_count)]
-	pub type CurrentContributionCount<T: Config> = StorageMap<_, Blake2_128Concat, u32, u32, ValueQuery>;
+	pub type CurrentContributionCount<T: Config> = StorageMap<_, Blake2_128Concat, RoscaId, u32, ValueQuery>;
 
 	// Counter for number of defaults by a participant
 	#[pallet::storage]
 	#[pallet::getter(fn default_count)]
-	pub type DefaultCount<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, AccountIdOf<T>, u32, ValueQuery>;
+	pub type DefaultCount<T: Config> = StorageDoubleMap<_, Blake2_128Concat, RoscaId, Blake2_128Concat, AccountIdOf<T>, u32, ValueQuery>;
 
 
 	#[pallet::event]
@@ -177,7 +177,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// A Rosca Created
 		RoscaCreated { 
-			rosca_id: u32, 
+			rosca_id: RoscaId, 
 			contribution_amount: BalanceOf<T>, 
 			contribution_frequency: <T as pallet_timestamp::Config>::Moment, 
 			random_order: bool, 
@@ -190,19 +190,19 @@ pub mod pallet {
 		},
 		/// Participant missed a payment
 		ParticipantDefaulted {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 			participant: AccountIdOf<T>,
 		},
 		/// Participant made a contribution
 		ContributionMade {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 			contributor: AccountIdOf<T>,
 			recipient: AccountIdOf<T>,
 			amount: BalanceOf<T>,
 		},
 		/// A Rosca deposit was deducted from
 		DepositDeducted {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 			contributor: AccountIdOf<T>,
 			recipient: AccountIdOf<T>,
 			amount: BalanceOf<T>,
@@ -210,39 +210,39 @@ pub mod pallet {
 		},
 		/// Participant joined the Rosca
 		JoinedRosca {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 			contributor: AccountIdOf<T>,
 		},
 		/// Participant left the Rosca
 		LeftRosca {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 			contributor: AccountIdOf<T>,
 		},
 		/// A Rosca was created
 		RoscaStarted {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 		},
 		/// A Rosca was completed
 		RoscaComplete {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 		},
 		/// A Security Deposit was added to
 		SecurityDepositContribution {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 			depositor: AccountIdOf<T>,
 		},
 		/// A Security Deposit was claimed back
 		SecurityDepositClaimed {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 			depositor: AccountIdOf<T>,
 		},
 		/// A Rosca was manually ended
 		RoscaManuallyEnded {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 		},
 		/// A new round started
 		NewRoundStarted {
-			rosca_id: u32,
+			rosca_id: RoscaId,
 			new_eligible_recipient: AccountIdOf<T>
 		}
 	}
@@ -389,7 +389,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(1)]
-		pub fn join_rosca(origin: OriginFor<T>, rosca_id: u32, position: Option<u32>) -> DispatchResult {
+		pub fn join_rosca(origin: OriginFor<T>, rosca_id: RoscaId, position: Option<u32>) -> DispatchResult {
 
 			let signer = ensure_signed(origin)?;
 			ensure!(Self::active_roscas(rosca_id).is_none(), Error::<T>::RoscaAlreadyActive);
@@ -436,7 +436,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(2)]
-		pub fn leave_rosca(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
+		pub fn leave_rosca(origin: OriginFor<T>, rosca_id: RoscaId) -> DispatchResult {
 
 			let signer = ensure_signed(origin)?;
 			ensure!(Self::active_roscas(rosca_id).is_none(), Error::<T>::RoscaAlreadyActive);
@@ -477,7 +477,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(3)]
-		pub fn start_rosca(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
+		pub fn start_rosca(origin: OriginFor<T>, rosca_id: RoscaId) -> DispatchResult {
 
 			let signer = ensure_signed(origin)?;
 			ensure!(Self::active_roscas(rosca_id).is_none(), Error::<T>::RoscaAlreadyActive);
@@ -529,7 +529,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(4)]
-		pub fn contribute_to_rosca(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
+		pub fn contribute_to_rosca(origin: OriginFor<T>, rosca_id: RoscaId) -> DispatchResult {
 
 			let signer = ensure_signed(origin)?;
 			ensure!(Self::participants(rosca_id, &signer).is_some(), Error::<T>::NotAParticipant);
@@ -615,7 +615,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(5)]
-		pub fn manually_end_rosca(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
+		pub fn manually_end_rosca(origin: OriginFor<T>, rosca_id: RoscaId) -> DispatchResult {
 			let _signer = ensure_signed(origin)?;
 			let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
@@ -654,7 +654,7 @@ pub mod pallet {
 
 
 		#[pallet::call_index(6)]
-		pub fn claim_security_deposit(origin: OriginFor<T>, rosca_id: u32) -> DispatchResult {
+		pub fn claim_security_deposit(origin: OriginFor<T>, rosca_id: RoscaId) -> DispatchResult {
 			let signer = ensure_signed(origin)?;	
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
 			let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id).ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
@@ -675,7 +675,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
-		pub fn add_to_security_deposit(origin: OriginFor<T>, rosca_id: u32, amount: u32) -> DispatchResult {
+		pub fn add_to_security_deposit(origin: OriginFor<T>, rosca_id: RoscaId, amount: u32) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 			ensure!(Self::participants(rosca_id, &signer).is_some(), Error::<T>::NotAParticipant);
 			ensure!(Self::completed_roscas(rosca_id).is_none(), Error::<T>::RoscaAlreadyCompleted);
@@ -695,7 +695,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	pub fn rosca_account_id(rosca_id: u32) -> T::AccountId {
+	pub fn rosca_account_id(rosca_id: RoscaId) -> T::AccountId {
 		T::PalletId::get().into_sub_account_truncating(rosca_id)
 	}
 
@@ -738,7 +738,7 @@ impl<T: Config> Pallet<T> {
     /// Processes missed contributions for the current round.
     /// For each participant (other than the eligible claimant) who has not contributed,
     /// check their security deposit and, if insufficient, mark them as defaulters.
-    fn process_defaulters(rosca_id: u32) -> DispatchResult {
+    fn process_defaulters(rosca_id: RoscaId) -> DispatchResult {
         // Retrieve required state items.
         let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
         let eligible_claimant = Self::eligible_claimant(rosca_id).ok_or(Error::<T>::NoEligbleClaimant)?;
@@ -814,7 +814,7 @@ impl<T: Config> Pallet<T> {
     /// Advances the ROSCA round.
     /// This updates the next payment timestamp, rotates the order of participants,
     /// updates the eligible claimant, and clears the current round’s contributions.
-    fn advance_rosca_round(rosca_id: u32) -> DispatchResult {
+    fn advance_rosca_round(rosca_id: RoscaId) -> DispatchResult {
         let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
         let mut next_pay_by_timestamp = Self::next_pay_by_timestamp(rosca_id)
             .ok_or(Error::<T>::NoNextPayByTimestamp)?;
@@ -852,7 +852,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Checks if the ROSCA should be completed and, if so, finalizes it.
-    fn check_and_complete_rosca(rosca_id: u32) -> DispatchResult {
+    fn check_and_complete_rosca(rosca_id: RoscaId) -> DispatchResult {
         let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
         let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id)
             .ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
