@@ -54,7 +54,7 @@ use crate::{
     },
     weights::{self, BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
     Aura, Balances, CollatorSelection, MessageQueue, OriginCaller, PalletInfo, ParachainSystem,
-    Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
+    Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, Assets,
     RuntimeOrigin, RuntimeTask, Session, SessionKeys, System, Treasury, WeightToFee, XcmpQueue,
 };
 
@@ -599,7 +599,7 @@ parameter_types! {
 
 impl pallet_rosca::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type NativeBalance = Balances;
+    type ForeignCurrency = Assets;
 	type MaxParticipants = ConstU32<150>;
 	type MaxInvitedParticipants = ConstU32<149>;
 	type PalletId = RoscaPalletId;
