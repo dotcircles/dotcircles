@@ -223,8 +223,8 @@ fn testnet_genesis(
             ],
             // (id, account_id, amount)
             "accounts": vec![
-                (1984, root.clone(), 1000000000000u64),
-                (1337, root.clone(), 1000000000000u64),
+                (1984, root.clone(), 1000000u64),
+                (1337, root.clone(), 1000000u64),
             ],
         },
     })
