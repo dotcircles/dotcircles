@@ -1,10 +1,7 @@
 pub mod governance;
 pub mod xcm_config;
 
-#[cfg(feature = "async-backing")]
 use cumulus_pallet_parachain_system::RelayNumberMonotonicallyIncreases;
-#[cfg(not(feature = "async-backing"))]
-use cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 use cumulus_primitives_core::{AggregateMessageOrigin, ParaId};
 use frame_support::{
     derive_impl,
@@ -57,7 +54,7 @@ use crate::{
     },
     weights::{self, BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight},
     Aura, Balances, CollatorSelection, MessageQueue, OriginCaller, PalletInfo, ParachainSystem,
-    Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason,
+    Preimage, Runtime, RuntimeCall, RuntimeEvent, RuntimeFreezeReason, RuntimeHoldReason, Assets,
     RuntimeOrigin, RuntimeTask, Session, SessionKeys, System, Treasury, WeightToFee, XcmpQueue,
 };
 
@@ -379,9 +376,6 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
-    #[cfg(not(feature = "async-backing"))]
-    type CheckAssociatedRelayNumber = RelayNumberStrictlyIncreases;
-    #[cfg(feature = "async-backing")]
     type CheckAssociatedRelayNumber = RelayNumberMonotonicallyIncreases;
     type ConsensusHook = ConsensusHook;
     type DmpQueue = frame_support::traits::EnqueueWithOrigin<MessageQueue, RelayOrigin>;
@@ -496,13 +490,6 @@ impl pallet_session::Config for Runtime {
     type WeightInfo = weights::pallet_session::WeightInfo<Runtime>;
 }
 
-#[cfg(not(feature = "async-backing"))]
-parameter_types! {
-    pub const AllowMultipleBlocksPerSlot: bool = false;
-    pub const MaxAuthorities: u32 = 100_000;
-}
-
-#[cfg(feature = "async-backing")]
 parameter_types! {
     pub const AllowMultipleBlocksPerSlot: bool = true;
     pub const MaxAuthorities: u32 = 100_000;
@@ -612,7 +599,7 @@ parameter_types! {
 
 impl pallet_rosca::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type NativeBalance = Balances;
+    type ForeignCurrency = Assets;
 	type MaxParticipants = ConstU32<150>;
 	type MaxInvitedParticipants = ConstU32<149>;
 	type PalletId = RoscaPalletId;

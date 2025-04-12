@@ -203,6 +203,29 @@ fn testnet_genesis(
         "polkadotXcm": {
             "safeXcmVersion": Some(SAFE_XCM_VERSION),
         },
-        "sudo": { "key": Some(root) }
+        "sudo": { "key": Some(root.clone()) },
+        "assets":  {
+            "assets": vec![(
+                1984,
+                root.clone(),
+                true,
+                70000,
+            ),
+            (
+                1337,
+                root.clone(),
+                true,
+                70000,
+            )],
+            // (id, name, symbol, decimals)
+            "metadata": vec![
+                (1984, b"USDT", b"USDT", 6), (1337, b"USDC", b"USDC", 6),
+            ],
+            // (id, account_id, amount)
+            "accounts": vec![
+                (1984, root.clone(), 1000000u64),
+                (1337, root.clone(), 1000000u64),
+            ],
+        },
     })
 }
