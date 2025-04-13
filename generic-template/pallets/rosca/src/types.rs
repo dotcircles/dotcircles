@@ -10,7 +10,7 @@ pub struct RoscaDetails<T: Config> {
     pub random_order: bool,
     pub number_of_participants: u32,
     pub minimum_participant_threshold: u32,
-    pub contribution_amount: u32,
+    pub contribution_amount: Balance,
     pub payment_asset: PaymentAssets,
     pub contribution_frequency: <T as pallet_timestamp::Config>::Moment,
     pub start_by_timestamp: <T as pallet_timestamp::Config>::Moment,

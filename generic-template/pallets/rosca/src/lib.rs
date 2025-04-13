@@ -118,7 +118,7 @@ pub mod pallet {
 	// Mapping of RoscaId and AccountID to the total security deposit one has in the Rosca fund.
 	#[pallet::storage]
 	#[pallet::getter(fn security_deposit)]
-	pub(super) type RoscaSecurityDeposits<T> = StorageDoubleMap<_, Blake2_128Concat, RoscaId, Blake2_128Concat, AccountIdOf<T>, u32, OptionQuery>;
+	pub(super) type RoscaSecurityDeposits<T> = StorageDoubleMap<_, Blake2_128Concat, RoscaId, Blake2_128Concat, AccountIdOf<T>, Balance, OptionQuery>;
 
 	// The claim order of participants for an unstarted Rosca.
 	#[pallet::storage]
@@ -317,7 +317,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::call_index(0)]
-		pub fn create_rosca(origin: OriginFor<T>, random_order: bool, invited_pre_verified_participants: BoundedVec<AccountIdOf<T>, T::MaxInvitedParticipants>, minimum_participant_threshold: u32, contribution_amount: u32, payment_asset: PaymentAssets, contribution_frequency: <T as pallet_timestamp::Config>::Moment, start_by_timestamp: <T as pallet_timestamp::Config>::Moment, position: Option<u32>, name: BoundedVec<u8, <T as Config>::StringLimit>) -> DispatchResult {
+		pub fn create_rosca(origin: OriginFor<T>, random_order: bool, invited_pre_verified_participants: BoundedVec<AccountIdOf<T>, T::MaxInvitedParticipants>, minimum_participant_threshold: u32, contribution_amount: Balance, payment_asset: PaymentAssets, contribution_frequency: <T as pallet_timestamp::Config>::Moment, start_by_timestamp: <T as pallet_timestamp::Config>::Moment, position: Option<u32>, name: BoundedVec<u8, <T as Config>::StringLimit>) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 			ensure!(contribution_amount > 0, Error::<T>::ContributionAmountMustBePositive);
 			ensure!(contribution_frequency > T::Moment::from(0u32), Error::<T>::FrequencyMustBePositive);
@@ -363,7 +363,7 @@ pub mod pallet {
 				random_order,
 				number_of_participants,
 				minimum_participant_threshold,
-				contribution_amount: contribution_amount.into(),
+				contribution_amount: contribution_amount,
 				payment_asset,
 				contribution_frequency,
 				start_by_timestamp,
@@ -378,7 +378,7 @@ pub mod pallet {
 				number_of_participants,
 				minimum_participant_threshold,
 				eligible_participants: rosca_invited_participants_including_creator,
-				contribution_amount: contribution_amount.into(),
+				contribution_amount: contribution_amount,
 				contribution_frequency,
 				start_by_timestamp,
 				name,
@@ -463,7 +463,7 @@ pub mod pallet {
 					pending_rosca.payment_asset.id(), 
 					&rosca_account_id, 
 					&signer, 
-					participant_deposit.into(),
+					participant_deposit,
 					Expendable
 				)?;
 				RoscaSecurityDeposits::<T>::remove(rosca_id, &signer);
@@ -579,7 +579,7 @@ pub mod pallet {
 
 			// If we are here we must have caught up to the current round
 			
-			T::ForeignCurrency::transfer(rosca.payment_asset.id(), &signer, &eligible_claimant, rosca.contribution_amount.into(), Expendable)?;
+			T::ForeignCurrency::transfer(rosca.payment_asset.id(), &signer, &eligible_claimant, rosca.contribution_amount, Expendable)?;
 			CurrentContributors::<T>::insert(rosca_id, &signer, ());
 			let current_contribution_count = Self::current_contribution_count(rosca_id).checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
 			CurrentContributionCount::<T>::insert(rosca_id, current_contribution_count);
@@ -588,7 +588,7 @@ pub mod pallet {
 				rosca_id,
 				contributor: signer.clone(),
 				recipient: eligible_claimant.clone(),
-				amount: rosca.contribution_amount.into(),
+				amount: rosca.contribution_amount,
 			});
 
 
@@ -686,7 +686,7 @@ pub mod pallet {
 				asset.id(), 
 				&rosca_account_id, 
 				&signer, 
-				participant_deposit.into(),
+				participant_deposit,
 				Expendable
 			)?;
 			RoscaSecurityDeposits::<T>::remove(rosca_id, &signer);
@@ -699,7 +699,7 @@ pub mod pallet {
 		}
 
 		#[pallet::call_index(7)]
-		pub fn add_to_security_deposit(origin: OriginFor<T>, rosca_id: RoscaId, amount: u32) -> DispatchResult {
+		pub fn add_to_security_deposit(origin: OriginFor<T>, rosca_id: RoscaId, amount: Balance) -> DispatchResult {
 			let signer = ensure_signed(origin)?;
 			ensure!(Self::participants(rosca_id, &signer).is_some(), Error::<T>::NotAParticipant);
 			ensure!(Self::completed_roscas(rosca_id).is_none(), Error::<T>::RoscaAlreadyCompleted);
@@ -711,7 +711,7 @@ pub mod pallet {
 					rosca.payment_asset.id(), 
 					&signer, 
 					&rosca_account_id, 
-					amount.into(), 
+					amount, 
 					Expendable
 				)?;
 			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).unwrap_or(0);
@@ -797,7 +797,7 @@ impl<T: Config> Pallet<T> {
 							rosca.payment_asset.id(), 
 							&rosca_account_id, 
 							&eligible_claimant, 
-							participant_deposit.into(), 
+							participant_deposit, 
 							Expendable
 						)?;
                         RoscaSecurityDeposits::<T>::insert(rosca_id, participant, 0);
@@ -805,7 +805,7 @@ impl<T: Config> Pallet<T> {
                             rosca_id,
                             contributor: participant.clone(),
                             recipient: eligible_claimant.clone(),
-                            amount: participant_deposit.into(),
+                            amount: participant_deposit,
                             sufficient: false,
                         });
                     }
@@ -815,7 +815,7 @@ impl<T: Config> Pallet<T> {
 						rosca.payment_asset.id(), 
 						&rosca_account_id, 
 						&eligible_claimant, 
-						rosca.contribution_amount.into(),
+						rosca.contribution_amount,
 						Expendable
 					)?;
                     let remaining = participant_deposit
@@ -826,7 +826,7 @@ impl<T: Config> Pallet<T> {
                         rosca_id,
                         contributor: participant.clone(),
                         recipient: eligible_claimant.clone(),
-                        amount: rosca.contribution_amount.into(),
+                        amount: rosca.contribution_amount,
                         sufficient: true,
                     });
                 }
