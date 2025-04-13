@@ -19,7 +19,7 @@ mod tests;
 use frame_support::pallet_prelude::DispatchResult;
 use scale_info::prelude::vec::Vec;
 
-use sp_runtime::traits::{SaturatedConversion, AccountIdConversion, CheckedAdd, CheckedMul};
+use sp_runtime::traits::{SaturatedConversion, AccountIdConversion, CheckedAdd, CheckedMul, Zero};
 use frame_support::traits::{Currency, ReservableCurrency, WithdrawReasons, ExistenceRequirement, fungible, fungibles};
 use frame_support::traits::fungible::Mutate;
 use frame_support::traits::fungibles::Mutate as FungibleMutate;
@@ -299,8 +299,8 @@ pub mod pallet {
 		FinalPayByTimestampNotFound,
 		/// Final pay by timestamp must be past
 		FinalPayByTimestampMustBePast,
-		/// Rosca not completed
-		RoscaNotCompleted,
+		/// Rosca is still active
+		RoscaStillActive,
 		/// Can't contribute beyond final pay by block
 		CantContributeBeyondFinalPayBy,
 		/// Rosca already completed
@@ -456,8 +456,6 @@ pub mod pallet {
 			let mut current_participant_count = Self::participants_count(rosca_id).ok_or(Error::<T>::RoscaParticipantCountNotFound)?;
 			current_participant_count = current_participant_count.checked_sub(1).ok_or(Error::<T>::ArithmeticUnderflow)?;
 
-			RoscaParticipantsCount::<T>::insert(rosca_id, current_participant_count);
-
 			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).unwrap_or(0);
 			if participant_deposit > 0 {
 				let rosca_account_id = Self::rosca_account_id(rosca_id);
@@ -473,6 +471,13 @@ pub mod pallet {
 					rosca_id,
 					depositor: signer.clone()
 				});
+			}
+
+			if current_participant_count.is_zero() {
+				RoscaParticipantsCount::<T>::remove(rosca_id);
+				PendingRoscaDetails::<T>::remove(rosca_id);
+			} else {
+				RoscaParticipantsCount::<T>::insert(rosca_id, current_participant_count);
 			}
 
 			Self::deposit_event(Event::<T>::LeftRosca {
@@ -664,10 +669,15 @@ pub mod pallet {
 		pub fn claim_security_deposit(origin: OriginFor<T>, rosca_id: RoscaId, asset: PaymentAssets) -> DispatchResult {
 			let signer = ensure_signed(origin)?;	
 			let current_timestamp = <pallet_timestamp::Pallet<T>>::get();
-			let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id).ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
+
+			let is_pending_rosca = Self::rosca_details(rosca_id).is_some();
+
+			if !is_pending_rosca {
+				let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id).ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
 			
-			ensure!(current_timestamp > final_pay_by_timestamp, Error::<T>::FinalPayByTimestampMustBePast);
-			ensure!(Self::completed_roscas(rosca_id).is_some(), Error::<T>::RoscaNotCompleted);
+				ensure!(current_timestamp > final_pay_by_timestamp, Error::<T>::FinalPayByTimestampMustBePast);
+			}
+			ensure!(is_pending_rosca || Self::completed_roscas(rosca_id).is_some(), Error::<T>::RoscaStillActive);
 			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).ok_or(Error::<T>::SecurityDepositNotFound)?;
 			ensure!(participant_deposit > 0, Error::<T>::SecurityDepositIsZero);
 			let rosca_account_id = Self::rosca_account_id(rosca_id);

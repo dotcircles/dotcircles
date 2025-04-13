@@ -542,6 +542,40 @@ fn claim_security_deposit_works() {
 }
 
 #[test]
+fn withdraw_security_deposit_before_start_works() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        Timestamp::set_timestamp(1);
+    
+        let creator = 1u64;
+        let participants_vec = vec![2, 3];
+        let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
+    
+        assert_ok!(RoscaPallet::create_rosca(
+            RuntimeOrigin::signed(creator),
+            false,
+            participants,
+            3,
+            100,
+            crate::PaymentAssets::USDC,
+            10,
+            20,
+            Some(0),
+            bounded_vec![1]
+        ));
+    
+        for participant in participants_vec.iter() {
+            assert_ok!(RoscaPallet::join_rosca(RuntimeOrigin::signed(*participant), 0, None));
+        }
+
+        assert_ok!(RoscaPallet::add_to_security_deposit(RuntimeOrigin::signed(2), 0, 200));
+        Timestamp::set_timestamp(40);
+
+        assert_ok!(RoscaPallet::claim_security_deposit(RuntimeOrigin::signed(2), 0, crate::PaymentAssets::USDC));
+    });
+}
+
+#[test]
 fn claim_security_deposit_before_completion_fails() {
     new_test_ext().execute_with(|| {
         let (creator, participants) = setup_basic_rosca();
@@ -835,17 +869,18 @@ fn creator_can_leave_before_start_and_rosca_can_still_start() {
             bounded_vec![1] // Name placeholder
         ));
 
-        // Creator immediately leaves
-        assert_ok!(RoscaPallet::leave_rosca(RuntimeOrigin::signed(creator), 0));
-
-        // Ensure the creator has been removed
-        assert_eq!(RoscaPallet::participants_count(0), Some(0));
-        assert_eq!(RoscaPallet::participants(0, &creator), None);
-
         // Remaining participants join
         for participant in &participants_vec {
             assert_ok!(RoscaPallet::join_rosca(RuntimeOrigin::signed(*participant), 0, None));
         }
+
+        assert_eq!(RoscaPallet::participants_count(0), Some(4));
+
+        // Creator leaves
+        assert_ok!(RoscaPallet::leave_rosca(RuntimeOrigin::signed(creator), 0));
+
+        // Ensure the creator has been removed
+        assert_eq!(RoscaPallet::participants(0, &creator), None);
 
         // Ensure the participant count is now 3
         assert_eq!(RoscaPallet::participants_count(0), Some(3));
@@ -855,5 +890,57 @@ fn creator_can_leave_before_start_and_rosca_can_still_start() {
 
         // Ensure the ROSCA is now active
         assert!(RoscaPallet::active_roscas(0).is_some());
+    });
+}
+
+#[test]
+fn if_pending_rosca_has_0_members_delete() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        Timestamp::set_timestamp(1);
+
+        let creator = 1u64;
+        let participants_vec = vec![2, 3, 4];
+        let participants: BoundedVec<u64, ConstU32<149>> = participants_vec.clone().try_into().unwrap();
+
+        // Creator creates the ROSCA
+        assert_ok!(RoscaPallet::create_rosca(
+            RuntimeOrigin::signed(creator),
+            false, // Not random order
+            participants.clone(),
+            3,      // Minimum threshold to start
+            100,    // Contribution amount
+            crate::PaymentAssets::USDT,     // Payment asset
+            10,     // Frequency
+            50,     // Start timestamp
+            Some(0), 
+            bounded_vec![1] // Name placeholder
+        ));
+
+        // Remaining participants join
+        for participant in &participants_vec {
+            assert_ok!(RoscaPallet::join_rosca(RuntimeOrigin::signed(*participant), 0, None));
+        }
+
+        // Creator leaves
+        assert_ok!(RoscaPallet::leave_rosca(RuntimeOrigin::signed(creator), 0));
+
+        // Ensure the creator has been removed
+        assert_eq!(RoscaPallet::participants_count(0), Some(3));
+        assert_eq!(RoscaPallet::participants(0, &creator), None);
+
+        // Ensure the pending rosca is still pending
+        assert!(RoscaPallet::rosca_details(0).is_some());
+
+        // Remaining participants leave
+        for participant in &participants_vec {
+            assert_ok!(RoscaPallet::leave_rosca(RuntimeOrigin::signed(*participant), 0));
+        }
+
+        // Ensure the pending rosca is not pending
+        assert!(RoscaPallet::rosca_details(0).is_none());
+
+        // Ensure the ROSCA is not active
+        assert!(RoscaPallet::active_roscas(0).is_none());
     });
 }
