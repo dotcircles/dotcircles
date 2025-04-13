@@ -75,7 +75,7 @@ chain = "dev"
 name = "collator01"
 command = "./target/release/generic-template-node"
 rpc_port = 8820
-args = ["--rpc-max-connections 10000"]
+args = ["--rpc-max-connections 10000 --state-pruning=archive --blocks-pruning=archive"]
 
 [[parachains.collators]]
 name = "collator02"

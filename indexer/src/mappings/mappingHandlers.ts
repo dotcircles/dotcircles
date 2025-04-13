@@ -1,20 +1,20 @@
 import { SubstrateExtrinsic, SubstrateEvent } from "@subql/types";
 import { Rosca, Round } from "../types";
-import { u8aToString } from "@polkadot/util";
+import { u8aToString, hexToString, isHex} from "@polkadot/util";
 
 
 type ParticipantDefaultedEvent = [number, string, string]; 
 
 type RoscaCreatedEvent = [
   number,
+  number,
+  number,
   boolean, 
+  string,
+  number,
   number,
   number,
   string[],
-  string,
-  string,
-  number,
-  string,
   string 
 ];
 
@@ -34,8 +34,7 @@ interface RoscaStartedEvent {
 
 export async function handleRoscaCreated(event: SubstrateEvent): Promise<void> {
 
-  const [rosca_id, random_order, number_of_participants, minimum_participant_threshold, eligible_participants, contribution_amount, contribution_frequency, start_by_timestamp, name, creator ] = event.event.data.toJSON() as RoscaCreatedEvent;
-
+  const [rosca_id, contribution_amount, contribution_frequency, random_order, name, number_of_participants, minimum_participant_threshold, start_by_timestamp, eligible_participants, creator ] = event.event.data.toJSON() as RoscaCreatedEvent;
   const roscaEntity = Rosca.create({
     id: rosca_id.toString(),
     roscaId : rosca_id,
@@ -46,7 +45,7 @@ export async function handleRoscaCreated(event: SubstrateEvent): Promise<void> {
     minParticipants : minimum_participant_threshold,
     contributionAmount : BigInt(contribution_amount),
     contributionFrequency : BigInt(contribution_frequency),
-    startTimestamp : start_by_timestamp,
+    startTimestamp : BigInt(start_by_timestamp),
     completed : false,
     eligibleParticipants : eligible_participants,
   });

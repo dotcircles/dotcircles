@@ -8,7 +8,7 @@ type Rosca@entity{
   minParticipants:Int!
   contributionAmount:BigInt!
   contributionFrequency:BigInt!
-  startTimestamp:Int!
+  startTimestamp:BigInt!
   completed:Boolean!
   eligibleParticipants:[String!]!
   startedBy:String

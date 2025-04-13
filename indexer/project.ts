@@ -58,7 +58,7 @@ const project: SubstrateProject = {
             handler: "handleRoscaCreated",
             filter: {
               module: "rosca",
-              method: "createRosca",
+              method: "RoscaCreated",
             },
           },
           {
@@ -66,7 +66,7 @@ const project: SubstrateProject = {
             handler: "handleRoscaStarted",
             filter: {
               module: "balances",
-              method: "startRosca",
+              method: "RoscaStarted",
             },
           },
           {
@@ -74,15 +74,7 @@ const project: SubstrateProject = {
             handler: "handleParticipantDefaulted",
             filter: {
               module: "rosca",
-              method: "contributeToRosca",
-            },
-          },
-          {
-            kind: SubstrateHandlerKind.Event,
-            handler: "handleParticipantDefaulted",
-            filter: {
-              module: "rosca",
-              method: "manuallyEndRosca",
+              method: "ParticipantDefaulted",
             },
           },
         ],
