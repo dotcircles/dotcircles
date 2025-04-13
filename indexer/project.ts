@@ -53,26 +53,36 @@ const project: SubstrateProject = {
       mapping: {
         file: "./dist/index.js",
         handlers: [
-          /*{
-            kind: SubstrateHandlerKind.Block,
-            handler: "handleBlock",
-            filter: {
-              modulo: 100,
-            },
-          },*/
-          /*{
-            kind: SubstrateHandlerKind.Call,
-            handler: "handleCall",
-            filter: {
-              module: "balances",
-            },
-          },*/
           {
             kind: SubstrateHandlerKind.Event,
-            handler: "handleEvent",
+            handler: "handleRoscaCreated",
+            filter: {
+              module: "rosca",
+              method: "createRosca",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleRoscaStarted",
             filter: {
               module: "balances",
-              method: "Transfer",
+              method: "startRosca",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleParticipantDefaulted",
+            filter: {
+              module: "rosca",
+              method: "contributeToRosca",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleParticipantDefaulted",
+            filter: {
+              module: "rosca",
+              method: "manuallyEndRosca",
             },
           },
         ],

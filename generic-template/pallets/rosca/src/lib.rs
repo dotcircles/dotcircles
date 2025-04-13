@@ -191,7 +191,8 @@ pub mod pallet {
 		/// Participant missed a payment
 		ParticipantDefaulted {
 			rosca_id: RoscaId,
-			participant: AccountIdOf<T>,
+			unpaid_recipient: AccountIdOf<T>,
+			defaulter: AccountIdOf<T>
 		},
 		/// Participant made a contribution
 		ContributionMade {
@@ -838,7 +839,8 @@ impl<T: Config> Pallet<T> {
                     });
                     Self::deposit_event(Event::<T>::ParticipantDefaulted {
                         rosca_id,
-                        participant: participant.clone(),
+						unpaid_recipient: eligible_claimant.clone(),
+                        defaulter: participant.clone()
                     });
                 }
             }

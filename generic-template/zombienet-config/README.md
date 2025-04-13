@@ -21,3 +21,8 @@ Once Polkadot binaries are in place you can spawn a local testnet by running the
 ```shell
 $ scripts/zombienet.sh devnet
 ```
+
+
+```shell
+$ sudo caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+```

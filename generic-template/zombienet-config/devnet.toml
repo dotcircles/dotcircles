@@ -1,6 +1,6 @@
 [relaychain]
 chain = "rococo-local"
-default_command = "./bin-stable-2709/polkadot"
+default_command = "./bin-stable-2409/polkadot"
 
 [[relaychain.nodes]]
 name = "alice"
@@ -19,13 +19,13 @@ chain = "asset-hub-rococo-local"
 
     [[parachains.collators]]
     name = "asset-hub-rococo-collator01"
-    command = "./bin-stable-2709/polkadot-parachain"
+    command = "./bin-stable-2409/polkadot-parachain"
     rpc_port = 8810
     args = ["-lxcm=trace,pallet-assets=trace"]
 
     [[parachains.collators]]
     name = "asset-hub-rococo-collator02"
-    command = "./bin-stable-2709/polkadot-parachain"
+    command = "./bin-stable-2409/polkadot-parachain"
     rpc_port = 8811
     args = ["--log=xcm=trace,pallet-assets=trace"]
 

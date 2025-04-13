@@ -32,3 +32,5 @@ coverage
 # fuzzing output
 **/template-fuzzer/output
 keys.txt
+
+zombienet-config/caddy.txt

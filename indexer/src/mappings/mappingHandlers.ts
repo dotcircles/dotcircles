@@ -1,71 +1,102 @@
-import assert from "assert";
-import {
-  SubstrateExtrinsic,
-  SubstrateEvent,
-  SubstrateBlock,
-} from "@subql/types";
-import { Account, Transfer } from "../types";
-import { Balance } from "@polkadot/types/interfaces";
-import { decodeAddress } from "@polkadot/util-crypto";
+import { SubstrateExtrinsic, SubstrateEvent } from "@subql/types";
+import { Rosca, Round } from "../types";
+import { u8aToString } from "@polkadot/util";
 
-export async function handleBlock(block: SubstrateBlock): Promise<void> {
-  // Do something with each block handler here
+
+type ParticipantDefaultedEvent = [number, string, string]; 
+
+type RoscaCreatedEvent = [
+  number,
+  boolean, 
+  number,
+  number,
+  string[],
+  string,
+  string,
+  number,
+  string,
+  string 
+];
+
+
+interface RoundInfo {
+  round_number: number;
+  payment_cutoff: string;
+  expected_contributors: string[];
+  recipient: string;
 }
 
-export async function handleCall(extrinsic: SubstrateExtrinsic): Promise<void> {
-  // Do something with a call handler here
+interface RoscaStartedEvent {
+  rosca_id: number;
+  started_by: string; 
+  rounds: RoundInfo[];
 }
 
-export async function handleEvent(event: SubstrateEvent): Promise<void> {
-  logger.info(
-    `New transfer event found at block ${event.block.block.header.number.toString()}`,
-  );
+export async function handleRoscaCreated(event: SubstrateEvent): Promise<void> {
 
-  // Get data from the event
-  // The balances.transfer event has the following payload \[from, to, value\]
-  // logger.info(JSON.stringify(event));
-  const {
-    event: {
-      data: [, to, amount],
-    },
-  } = event;
+  const [rosca_id, random_order, number_of_participants, minimum_participant_threshold, eligible_participants, contribution_amount, contribution_frequency, start_by_timestamp, name, creator ] = event.event.data.toJSON() as RoscaCreatedEvent;
 
-  const from = event.extrinsic?.extrinsic.signer;
-  assert(from, "Signer is missing");
-
-  const blockNumber: number = event.block.block.header.number.toNumber();
-
-  const fromAccount = await checkAndGetAccount(from.toString(), blockNumber);
-  const toAccount = await checkAndGetAccount(to.toString(), blockNumber);
-
-  // Create the new transfer entity
-  const transfer = Transfer.create({
-    id: `${event.block.block.header.number.toNumber()}-${event.idx}`,
-    blockNumber,
-    date: event.block.timestamp,
-    fromId: fromAccount.id,
-    toId: toAccount.id,
-    amount: (amount as Balance).toBigInt(),
+  const roscaEntity = Rosca.create({
+    id: rosca_id.toString(),
+    roscaId : rosca_id,
+    name : name,
+    creator : creator,
+    randomOrder : random_order,
+    totalParticipants : number_of_participants,
+    minParticipants : minimum_participant_threshold,
+    contributionAmount : BigInt(contribution_amount),
+    contributionFrequency : BigInt(contribution_frequency),
+    startTimestamp : start_by_timestamp,
+    completed : false,
+    eligibleParticipants : eligible_participants,
   });
+  
 
-  fromAccount.lastTransferBlock = blockNumber;
-  toAccount.lastTransferBlock = blockNumber;
-
-  await Promise.all([fromAccount.save(), toAccount.save(), transfer.save()]);
+  await roscaEntity.save();
 }
 
-async function checkAndGetAccount(
-  id: string,
-  blockNumber: number,
-): Promise<Account> {
-  let account = await Account.get(id.toLowerCase());
-  if (!account) {
-    // We couldn't find the account
-    account = Account.create({
-      id: id.toLowerCase(),
-      publicKey: decodeAddress(id).toString().toLowerCase(),
-      firstTransferBlock: blockNumber,
-    });
+export async function handleRoscaStarted(event: SubstrateEvent): Promise<void> {
+
+  const { rosca_id, started_by, rounds } = event.event.data.toJSON() as unknown as RoscaStartedEvent;
+
+  let roscaEntity = await Rosca.get(rosca_id.toString());
+  if (roscaEntity) {
+    roscaEntity.startedBy = started_by;
+    await roscaEntity.save();
   }
-  return account;
+  
+  for (const round of rounds) {
+    const roundNumber = round.round_number;
+    const roundId = `${rosca_id}-${roundNumber}`;
+  
+    const roundEntity = Round.create({
+      id: roundId,
+      parentRoscaId: rosca_id.toString(),
+      chainRoscaId: rosca_id,                       
+      roundNumber: roundNumber,
+      paymentCutoff: BigInt(round.payment_cutoff),
+      expectedContributors: round.expected_contributors,  
+      recipient: round.recipient,
+      defaulters: [],                        
+    });
+  
+    await roundEntity.save();
+  }
+}
+
+export async function handleParticipantDefaulted(event: SubstrateEvent): Promise<void> {
+
+  const [ rosca_id, unpaid_recipient, defaulter ] = event.event.data.toJSON() as ParticipantDefaultedEvent;
+  
+  const rounds = await Round.getByFields([
+    ["parentRoscaId", "=", rosca_id],
+    ["recipient", "=", unpaid_recipient],
+  ], {limit: 1});
+  
+  for (const roundEntity of rounds) {
+    if (!roundEntity.defaulters.includes(defaulter)) {
+      roundEntity.defaulters.push(defaulter);
+      await roundEntity.save();
+    }
+  }
 }
