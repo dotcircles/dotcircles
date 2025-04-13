@@ -218,9 +218,11 @@ pub mod pallet {
 			rosca_id: RoscaId,
 			contributor: AccountIdOf<T>,
 		},
-		/// A Rosca was created
+		/// A Rosca was started
 		RoscaStarted {
 			rosca_id: RoscaId,
+			started_by: AccountIdOf<T>,
+			rounds: RoscaRounds<T>
 		},
 		/// A Rosca was completed
 		RoscaComplete {
@@ -310,7 +312,11 @@ pub mod pallet {
 		/// Can't invite to self
 		CantInviteSelf,
 		/// Min participant threshold not met
-		ThresholdTooHigh
+		ThresholdTooHigh,
+		/// Rosca still active - can't claim security deposit
+		RoscaStillActive,
+		/// Too many Rosca Rounds
+		TooManyRounds
 	}
 
 
@@ -507,7 +513,9 @@ pub mod pallet {
 				Self::shuffle_participants(&mut active_rosca_order);		
 			}
 
-			let first_eligible_claimant = &active_rosca_order[active_rosca_order.len() - 1 as usize];
+			let rosca_rounds = Self::generate_rounds(active_rosca_order.clone(), current_timestamp, pending_rosca.contribution_frequency)?;
+
+			let first_eligible_claimant = &active_rosca_order[active_rosca_order.len() - 1];
 			EligibleClaimant::<T>::insert(rosca_id, first_eligible_claimant);
 
 			active_rosca_order.try_rotate_right(1).map_err(|_| Error::<T>::ArithmeticError)?;
@@ -526,9 +534,12 @@ pub mod pallet {
 
 			ActiveRoscas::<T>::insert(rosca_id, pending_rosca);	
 			PendingRoscaDetails::<T>::remove(rosca_id);
+
 			
 			Self::deposit_event(Event::<T>::RoscaStarted {
 				rosca_id,
+				started_by: signer,
+				rounds: rosca_rounds
 			});
 
 			Ok(())
@@ -667,7 +678,7 @@ pub mod pallet {
 			let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id).ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
 			
 			ensure!(current_timestamp > final_pay_by_timestamp, Error::<T>::FinalPayByTimestampMustBePast);
-			ensure!(Self::completed_roscas(rosca_id).is_some(), Error::<T>::RoscaNotCompleted);
+			ensure!(Self::rosca_details(rosca_id).is_some() || Self::completed_roscas(rosca_id).is_some(), Error::<T>::RoscaStillActive);
 			let mut participant_deposit = Self::security_deposit(rosca_id, &signer).ok_or(Error::<T>::SecurityDepositNotFound)?;
 			ensure!(participant_deposit > 0, Error::<T>::SecurityDepositIsZero);
 			let rosca_account_id = Self::rosca_account_id(rosca_id);
@@ -891,5 +902,43 @@ impl<T: Config> Pallet<T> {
         }
         Ok(())
     }
+
+	/// Generate the future round data
+	pub fn generate_rounds(
+		participants: BoundedVec<AccountIdOf<T>, T::MaxParticipants>,
+		current_time: T::Moment,
+		frequency: T::Moment,
+	) -> Result<RoscaRounds<T>, Error<T>> {
+
+		let mut rounds: RoscaRounds<T> = BoundedVec::new();
+	
+		let mut payment_cutoff = current_time;
+	
+		for (i, recipient) in participants.iter().rev().enumerate() {
+			// Get everyone except the recipient
+			let others: Vec<_> = participants
+				.iter()
+				.filter(|x| *x != recipient)
+				.cloned()
+				.collect();
+	
+			// Convert to BoundedVec
+			let expected_contributors: BoundedVec<AccountIdOf<T>, T::MaxInvitedParticipants> =
+				BoundedVec::try_from(others)
+					.map_err(|_| Error::<T>::TooManyProposedParticipants)?;
+	
+			let round = RoundInfo::<T> {
+				round_number: (i + 1) as u32,
+				payment_cutoff,
+				expected_contributors,
+				recipient: recipient.clone(),
+			};
+	
+			rounds.try_push(round).map_err(|_| Error::<T>::TooManyRounds)?;
+			payment_cutoff = payment_cutoff.checked_add(&frequency).ok_or(Error::<T>::ArithmeticOverflow)?;;
+		}
+	
+		Ok(rounds)
+	}
 }
 

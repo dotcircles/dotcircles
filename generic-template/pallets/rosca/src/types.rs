@@ -19,6 +19,18 @@ pub struct RoscaDetails<T: Config> {
 
 pub type RoscaId = u32;
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, TypeInfo, RuntimeDebugNoBound)]
+#[scale_info(skip_type_params(T))]
+pub struct RoundInfo<T: Config> {
+    pub round_number: u32,
+    pub payment_cutoff: <T as pallet_timestamp::Config>::Moment,
+    pub expected_contributors: BoundedVec<AccountIdOf<T>, <T as Config>::MaxInvitedParticipants>,
+    pub recipient: AccountIdOf<T>,
+}
+
+pub type RoscaRounds<T: Config> = BoundedVec<RoundInfo<T>, T::MaxParticipants>;
+    
+
 #[derive(Encode, Decode, Clone, PartialEq, Eq, TypeInfo, Debug)]
 pub enum PaymentAssets {
     #[codec(index = 0)]

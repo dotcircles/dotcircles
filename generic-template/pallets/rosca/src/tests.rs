@@ -1,6 +1,6 @@
 #![allow(warnings)]
 
-use crate::{mock::*, Error, Event};
+use crate::{mock::*, Error, Event, RoundInfo};
 use frame_support::{
     assert_noop, assert_ok, assert_err,
     traits::{OnFinalize, OnInitialize},
@@ -855,5 +855,41 @@ fn creator_can_leave_before_start_and_rosca_can_still_start() {
 
         // Ensure the ROSCA is now active
         assert!(RoscaPallet::active_roscas(0).is_some());
+    });
+}
+
+#[test]
+fn test_rosca_started_event_emitted_with_manual_rounds() {
+    new_test_ext().execute_with(|| {
+        let (creator, participants_vec) = setup_basic_rosca();
+
+        let expected_rounds: BoundedVec<_, ConstU32<150>> = bounded_vec![
+            RoundInfo {
+                round_number: 1,
+                payment_cutoff: 1,
+                expected_contributors: bounded_vec![3, 2],
+                recipient: 1,
+            },
+            RoundInfo {
+                round_number: 2,
+                payment_cutoff: 11,
+                expected_contributors: bounded_vec![3, 1],
+                recipient: 2,
+            },
+            RoundInfo {
+                round_number: 3,
+                payment_cutoff: 21,
+                expected_contributors: bounded_vec![2, 1],
+                recipient: 3,
+            }
+        ];
+
+        System::assert_last_event(RuntimeEvent::RoscaPallet(
+            Event::RoscaStarted {
+                rosca_id: 0,
+                started_by: creator,
+                rounds: expected_rounds,
+            }
+        ));
     });
 }
