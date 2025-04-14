@@ -82,3 +82,9 @@ name = "collator02"
 rpc_port = 8821
 command = "./target/release/generic-template-node"
 args = ["--rpc-max-connections 10000"]
+
+
+[relaychain.runtime_genesis_patch.balances]
+balances = [
+    ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1152921504606846976],
+]

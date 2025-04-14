@@ -24,5 +24,8 @@ $ scripts/zombienet.sh devnet
 
 
 ```shell
+$ sudo nano /etc/caddy/Caddyfile
 $ sudo caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
+
+
