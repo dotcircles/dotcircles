@@ -99,23 +99,6 @@ type NewRoundStartedEvent = {
 export async function handleRoscaCreated(event: SubstrateEvent): Promise<void> {
 
   const [rosca_id, contribution_amount, payment_asset, contribution_frequency, random_order, name, number_of_participants, minimum_participant_threshold, start_by_timestamp, eligible_participants, creator ] = event.event.data.toJSON() as RoscaCreatedEvent;
-  // const mappedParticipants: Account[] = eligible_participants.map(address => ({id: address}));
-
-  const participantEntities: Account[] = [];
-
-  for (const address of eligible_participants) {
-    let account = await Account.get(address);
-
-    if (!account) {
-      account = Account.create({
-        id: address
-      });
-      await account.save();
-    }
-
-    participantEntities.push(account);
-  }
-
 
   const roscaEntity = Rosca.create({
     id: rosca_id.toString(),
@@ -138,6 +121,27 @@ export async function handleRoscaCreated(event: SubstrateEvent): Promise<void> {
   
 
   await roscaEntity.save();
+
+  for (const address of eligible_participants) {
+    let account = await Account.get(address);
+
+    if (!account) {
+      account = Account.create({
+        id: address
+      });
+      await account.save();
+    }
+
+    const eligibilityId = `${rosca_id}-${address}`;
+
+    let eligibility = RoscaEligibility.create({
+      id: eligibilityId,
+      parentRoscaId: rosca_id.toString(),
+      accountId: address,
+      joinedAt: undefined
+    });
+    await eligibility.save();
+  }
 
 }
 
