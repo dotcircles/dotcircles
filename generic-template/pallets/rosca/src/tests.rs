@@ -866,19 +866,19 @@ fn test_rosca_started_event_emitted_with_manual_rounds() {
         let expected_rounds: BoundedVec<_, ConstU32<150>> = bounded_vec![
             RoundInfo {
                 round_number: 1,
-                payment_cutoff: 1,
+                payment_cutoff: 11,
                 expected_contributors: bounded_vec![3, 2],
                 recipient: 1,
             },
             RoundInfo {
                 round_number: 2,
-                payment_cutoff: 11,
+                payment_cutoff: 21,
                 expected_contributors: bounded_vec![3, 1],
                 recipient: 2,
             },
             RoundInfo {
                 round_number: 3,
-                payment_cutoff: 21,
+                payment_cutoff: 31,
                 expected_contributors: bounded_vec![2, 1],
                 recipient: 3,
             }
@@ -889,7 +889,8 @@ fn test_rosca_started_event_emitted_with_manual_rounds() {
                 rosca_id: 0,
                 started_by: creator,
                 rounds: expected_rounds,
-                first_eligible_claimant: 1
+                first_eligible_claimant: 1,
+                first_payment_cutoff: 11
             }
         ));
     });

@@ -549,7 +549,7 @@ pub mod pallet {
 				rosca_id,
 				started_by: signer,
 				rounds: rosca_rounds,
-				first_eligible_claimant: first_eligible_claimant.clone()
+				first_eligible_claimant: first_eligible_claimant.clone(),
 				first_payment_cutoff: next_pay_by_timestamp
 			});
 
@@ -928,7 +928,7 @@ impl<T: Config> Pallet<T> {
 
 		let mut rounds: RoscaRounds<T> = BoundedVec::new();
 	
-		let mut payment_cutoff = current_time;
+		let mut round_payment_cutoff = current_time.checked_add(&frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 	
 		for (i, recipient) in participants.iter().rev().enumerate() {
 			// Get everyone except the recipient
@@ -945,13 +945,13 @@ impl<T: Config> Pallet<T> {
 	
 			let round = RoundInfo::<T> {
 				round_number: (i + 1) as u32,
-				payment_cutoff,
+				payment_cutoff: round_payment_cutoff,
 				expected_contributors,
 				recipient: recipient.clone(),
 			};
 	
 			rounds.try_push(round).map_err(|_| Error::<T>::TooManyRounds)?;
-			payment_cutoff = payment_cutoff.checked_add(&frequency).ok_or(Error::<T>::ArithmeticOverflow)?;;
+			round_payment_cutoff = round_payment_cutoff.checked_add(&frequency).ok_or(Error::<T>::ArithmeticOverflow)?;
 		}
 	
 		Ok(rounds)
