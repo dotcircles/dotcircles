@@ -1,12 +1,13 @@
 import { Button } from "@heroui/button";
 import { Link } from "@heroui/link";
 import { WalletConnectButton } from "./components/ui/WalletConnect";
+import FinancialDashboard from "./components/layout/old/FinancialDashboard";
 
 export default function HomePage() {
   return (
     <main className="flex flex-col items-center justify-center py-20 px-4 text-center">
 
-      <h1 className="text-4xl font-bold mb-4">
+      {/* <h1 className="text-4xl font-bold mb-4">
         Welcome to DotCircles
       </h1>
 
@@ -15,6 +16,7 @@ export default function HomePage() {
       </p>
 
       <div className="flex gap-4 flex-wrap justify-center">
+
         <WalletConnectButton />
 
         <Button as={Link} href="/dashboard" color="primary" radius="full">
@@ -24,7 +26,9 @@ export default function HomePage() {
         <Button as={Link} href="/create" variant="bordered" radius="full">
           Create a Circle
         </Button>
-      </div>
+      </div> */}
+
+      {/* <FinancialDashboard /> */}
     </main>
   );
 }

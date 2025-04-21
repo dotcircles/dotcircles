@@ -889,6 +889,7 @@ fn test_rosca_started_event_emitted_with_manual_rounds() {
                 rosca_id: 0,
                 started_by: creator,
                 rounds: expected_rounds,
+                first_eligible_claimant: 1
             }
         ));
     });

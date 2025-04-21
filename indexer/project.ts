@@ -77,6 +77,70 @@ const project: SubstrateProject = {
               method: "ParticipantDefaulted",
             },
           },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleContributionMade",
+            filter: {
+              module: "rosca",
+              method: "ContributionMade",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleDepositDeducted",
+            filter: {
+              module: "rosca",
+              method: "DepositDeducted",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleJoinedRosca",
+            filter: {
+              module: "rosca",
+              method: "JoinedRosca",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleLeftRosca",
+            filter: {
+              module: "rosca",
+              method: "LeftRosca",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleRoscaComplete",
+            filter: {
+              module: "rosca",
+              method: "RoscaComplete",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleSecurityDepositContribution",
+            filter: {
+              module: "rosca",
+              method: "SecurityDepositContribution",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleSecurityDepositClaimed",
+            filter: {
+              module: "rosca",
+              method: "SecurityDepositClaimed",
+            },
+          },
+          {
+            kind: SubstrateHandlerKind.Event,
+            handler: "handleNewRoundStarted",
+            filter: {
+              module: "rosca",
+              method: "NewRoundStarted",
+            },
+          },
         ],
       },
     },

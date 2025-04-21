@@ -1,25 +1,77 @@
-"use client"
+// app/dashboard/page.tsx
+"use client"; // Needed for useEffect, useState
 
-import { Tabs, Tab } from "@heroui/tabs";
-import { fetchRoscasForUser } from "@/lib/queries";
-import { RoscaList } from "@/app/components/dashboard/RoscaList";
-// import { getConnectedAddress } from "@/lib/auth";
-import CreateRosca from "@/app/components/roscas/CreateRosca";
-import { Card, CardBody } from "@heroui/card";
-import DashboardTabs from "@/app/components/dashboard/DashboardTabs";
+import React, { useState, useEffect } from 'react';
+import { fetchJoinedRoscas } from '@/app/lib/data-fetchers'; // Adjust path
+import { Rosca } from '@/app/lib/types';
+import RoscaList from '@/app/components/roscas/RoscaList'; // Component to render the list
+import { Spinner } from '@heroui/spinner'; // Individual import
+import {Tabs, Tab} from "@heroui/tabs"; // Individual import
 
+export default function MyRoscasPage() {
+  const [pendingRoscas, setPendingRoscas] = useState<Rosca[]>([]);
+  const [activeRoscas, setActiveRoscas] = useState<Rosca[]>([]);
+  const [completedRoscas, setCompletedRoscas] = useState<Rosca[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function DashboardPage() {
-//   const address = await getConnectedAddress();
-  const { pending, active, completed } = await fetchRoscasForUser("5FEda1GYvjMYcBiuRE7rb85QbD5bQNHuZajhRvHYTxm4PPz5");
-
-    console.log(pending, active, completed)
+  useEffect(() => {
+    async function loadRoscas() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Replace 'currentUser' with actual user identifier
+        const joined = await fetchJoinedRoscas('currentUser');
+        setPendingRoscas(joined.filter(r => r.status === 'Pending'));
+        setActiveRoscas(joined.filter(r => r.status === 'Active'));
+        setCompletedRoscas(joined.filter(r => r.status === 'Completed'));
+      } catch (err) {
+        console.error("Failed to fetch joined ROSCAs:", err);
+        setError("Could not load your ROSCAs. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadRoscas();
+  }, []);
 
   return (
-    <section className="py-10 px-6">
-      <h1 className="text-3xl font-bold mb-6">My Circles</h1>
-      <CreateRosca />
-      <DashboardTabs pending={pending} active={active} completed={completed} />
-    </section>
+    <div>
+      <h1 className="text-2xl font-semibold mb-6">My ROSCAs</h1>
+
+      {isLoading && (
+        <div className="flex justify-center items-center h-40">
+          <Spinner label="Loading ROSCAs..." color="primary" />
+        </div>
+      )}
+
+      {error && <p className="text-danger">{error}</p>}
+
+      {!isLoading && !error && (
+           <Tabs aria-label="ROSCA Status Tabs" color="primary">
+             <Tab key="active" title={`Active (${activeRoscas.length})`}>
+                 {activeRoscas.length > 0 ? (
+                    <RoscaList roscas={activeRoscas} />
+                 ) : (
+                    <p className="text-default-500 mt-4">You have no active ROSCAs.</p>
+                 )}
+             </Tab>
+             <Tab key="pending" title={`Pending (${pendingRoscas.length})`}>
+                  {pendingRoscas.length > 0 ? (
+                    <RoscaList roscas={pendingRoscas} />
+                 ) : (
+                    <p className="text-default-500 mt-4">You have no pending ROSCAs.</p>
+                 )}
+             </Tab>
+             <Tab key="completed" title={`Completed (${completedRoscas.length})`}>
+                  {completedRoscas.length > 0 ? (
+                     <RoscaList roscas={completedRoscas} />
+                 ) : (
+                    <p className="text-default-500 mt-4">You have no completed ROSCAs.</p>
+                 )}
+             </Tab>
+           </Tabs>
+      )}
+    </div>
   );
 }

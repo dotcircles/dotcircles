@@ -7,7 +7,7 @@ import { walletConnectService } from '@/services/walletConnect';
 import { SessionTypes } from '@walletconnect/types';
 import { Button } from '@heroui/button';
 import { Image } from '@heroui/image';
-import logo from '@/public/wallet_connect.svg';
+
 
 export const WalletConnectButton = () => {
   const [provider, setProvider] = useState<Promise<any>>();

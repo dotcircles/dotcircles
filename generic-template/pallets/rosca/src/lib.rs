@@ -178,7 +178,8 @@ pub mod pallet {
 		/// A Rosca Created
 		RoscaCreated { 
 			rosca_id: RoscaId, 
-			contribution_amount: Balance, 
+			contribution_amount: Balance,
+			payment_asset: PaymentAssets,
 			contribution_frequency: <T as pallet_timestamp::Config>::Moment, 
 			random_order: bool, 
 			name: BoundedVec<u8, <T as Config>::StringLimit>, 
@@ -223,7 +224,9 @@ pub mod pallet {
 		RoscaStarted {
 			rosca_id: RoscaId,
 			started_by: AccountIdOf<T>,
-			rounds: RoscaRounds<T>
+			rounds: RoscaRounds<T>,
+			first_eligible_claimant: AccountIdOf<T>,
+			first_payment_cutoff: T::Moment
 		},
 		/// A Rosca was completed
 		RoscaComplete {
@@ -233,11 +236,13 @@ pub mod pallet {
 		SecurityDepositContribution {
 			rosca_id: RoscaId,
 			depositor: AccountIdOf<T>,
+			amount: Balance
 		},
 		/// A Security Deposit was claimed back
 		SecurityDepositClaimed {
 			rosca_id: RoscaId,
 			depositor: AccountIdOf<T>,
+			amount: Balance
 		},
 		/// A Rosca was manually ended
 		RoscaManuallyEnded {
@@ -246,7 +251,8 @@ pub mod pallet {
 		/// A new round started
 		NewRoundStarted {
 			rosca_id: RoscaId,
-			new_eligible_recipient: AccountIdOf<T>
+			new_eligible_recipient: AccountIdOf<T>,
+			payment_cutoff: T::Moment
 		}
 	}
 	// Errors inform users that something went wrong.
@@ -371,7 +377,7 @@ pub mod pallet {
 				number_of_participants,
 				minimum_participant_threshold,
 				contribution_amount: contribution_amount.into(),
-				payment_asset,
+				payment_asset: payment_asset.clone(),
 				contribution_frequency,
 				start_by_timestamp,
 				name: name.clone()
@@ -386,6 +392,7 @@ pub mod pallet {
 				minimum_participant_threshold,
 				eligible_participants: rosca_invited_participants_including_creator,
 				contribution_amount: contribution_amount.into(),
+				payment_asset,
 				contribution_frequency,
 				start_by_timestamp,
 				name,
@@ -478,7 +485,8 @@ pub mod pallet {
 				RoscaSecurityDeposits::<T>::remove(rosca_id, &signer);
 				Self::deposit_event(Event::<T>::SecurityDepositClaimed {
 					rosca_id,
-					depositor: signer.clone()
+					depositor: signer.clone(),
+					amount: participant_deposit.into()
 				});
 			}
 
@@ -516,8 +524,8 @@ pub mod pallet {
 
 			let rosca_rounds = Self::generate_rounds(active_rosca_order.clone(), current_timestamp, pending_rosca.contribution_frequency)?;
 
-			let first_eligible_claimant = &active_rosca_order[active_rosca_order.len() - 1];
-			EligibleClaimant::<T>::insert(rosca_id, first_eligible_claimant);
+			let first_eligible_claimant = &active_rosca_order.clone()[active_rosca_order.len() - 1];
+			EligibleClaimant::<T>::insert(rosca_id, first_eligible_claimant.clone());
 
 			active_rosca_order.try_rotate_right(1).map_err(|_| Error::<T>::ArithmeticError)?;
 
@@ -540,7 +548,9 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::RoscaStarted {
 				rosca_id,
 				started_by: signer,
-				rounds: rosca_rounds
+				rounds: rosca_rounds,
+				first_eligible_claimant: first_eligible_claimant.clone()
+				first_payment_cutoff: next_pay_by_timestamp
 			});
 
 			Ok(())
@@ -626,6 +636,7 @@ pub mod pallet {
 				Self::deposit_event(Event::<T>::NewRoundStarted {
 					rosca_id,
 					new_eligible_recipient: eligible_claimant.clone(),
+					payment_cutoff: next_pay_by_timestamp
 				});
 			}
 
@@ -694,7 +705,8 @@ pub mod pallet {
 			RoscaSecurityDeposits::<T>::remove(rosca_id, &signer);
 			Self::deposit_event(Event::<T>::SecurityDepositClaimed {
 				rosca_id,
-				depositor: signer
+				depositor: signer,
+				amount: participant_deposit.into()
 			});
 
 			Ok(())
@@ -721,7 +733,8 @@ pub mod pallet {
 			RoscaSecurityDeposits::<T>::insert(rosca_id, &signer, new_deposit_balance);
 			Self::deposit_event(Event::<T>::SecurityDepositContribution {
 				rosca_id,
-				depositor: signer
+				depositor: signer,
+				amount: amount.into()
 			});
 			Ok(())
 		}
@@ -884,6 +897,7 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::<T>::NewRoundStarted {
             rosca_id,
             new_eligible_recipient: new_eligible,
+			payment_cutoff: next_pay_by_timestamp
         });
         Ok(())
     }
