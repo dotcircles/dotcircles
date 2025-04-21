@@ -1,6 +1,6 @@
 import { SubstrateExtrinsic, SubstrateEvent } from "@subql/types";
 import { Rosca, Round, RoscaEligibility, Account, SecurityDeposit } from "../types";
-import { u8aToString, hexToString, isHex} from "@polkadot/util";
+import { u8aToString, hexToString, isHex } from "@polkadot/util";
 
 
 // function ensureAccount(id: string): Account {
@@ -13,7 +13,7 @@ import { u8aToString, hexToString, isHex} from "@polkadot/util";
 // }
 
 
-type ParticipantDefaultedEvent = [number, string, string]; 
+type ParticipantDefaultedEvent = [number, string, string];
 
 
 type RoscaCreatedEvent = [
@@ -21,13 +21,13 @@ type RoscaCreatedEvent = [
   number,
   string,
   number,
-  boolean, 
+  boolean,
   string,
   number,
   number,
   number,
   string[],
-  string 
+  string
 ];
 
 
@@ -40,7 +40,7 @@ interface RoundInfo {
 
 interface RoscaStartedEvent {
   rosca_id: number;
-  started_by: string; 
+  started_by: string;
   rounds: RoundInfo[];
   first_eligible_claimant: string;
   payment_cutoff: number;
@@ -98,27 +98,27 @@ type NewRoundStartedEvent = {
 
 export async function handleRoscaCreated(event: SubstrateEvent): Promise<void> {
 
-  const [rosca_id, contribution_amount, payment_asset, contribution_frequency, random_order, name, number_of_participants, minimum_participant_threshold, start_by_timestamp, eligible_participants, creator ] = event.event.data.toJSON() as RoscaCreatedEvent;
+  const [rosca_id, contribution_amount, payment_asset, contribution_frequency, random_order, name, number_of_participants, minimum_participant_threshold, start_by_timestamp, eligible_participants, creator] = event.event.data.toJSON() as RoscaCreatedEvent;
 
   const roscaEntity = Rosca.create({
     id: rosca_id.toString(),
-    roscaId : rosca_id,
-    name : name,
-    creator : creator,
+    roscaId: rosca_id,
+    name: name,
+    creator: creator,
     paymentAsset: payment_asset,
-    randomOrder : random_order,
-    totalParticipants : number_of_participants,
-    minParticipants : minimum_participant_threshold,
-    contributionAmount : BigInt(contribution_amount),
-    contributionFrequency : BigInt(contribution_frequency),
-    startTimestamp : BigInt(start_by_timestamp),
-    completed : false,
-    eligibleParticipants : eligible_participants,
+    randomOrder: random_order,
+    totalParticipants: number_of_participants,
+    minParticipants: minimum_participant_threshold,
+    contributionAmount: BigInt(contribution_amount),
+    contributionFrequency: BigInt(contribution_frequency),
+    startTimestamp: BigInt(start_by_timestamp),
+    completed: false,
+    eligibleParticipants: eligible_participants,
     activeParticipants: [],
     totalSecurityDeposits: 0,
     currentRoundNumber: 0
   });
-  
+
 
   await roscaEntity.save();
 
@@ -157,36 +157,36 @@ export async function handleRoscaStarted(event: SubstrateEvent): Promise<void> {
     roscaEntity.currentRoundPaymentCutoff = BigInt(payment_cutoff);
     await roscaEntity.save();
   }
-  
+
   for (const round of rounds) {
     const roundNumber = round.round_number;
     const roundId = `${rosca_id}-${roundNumber}`;
-  
+
     const roundEntity = Round.create({
       id: roundId,
       parentRoscaId: rosca_id.toString(),
-      chainRoscaId: rosca_id,                       
+      chainRoscaId: rosca_id,
       roundNumber: roundNumber,
       paymentCutoff: BigInt(round.payment_cutoff),
-      expectedContributors: round.expected_contributors,  
+      expectedContributors: round.expected_contributors,
       recipient: round.recipient,
-      defaulters: [],            
-      actualContributors: [],            
+      defaulters: [],
+      actualContributors: [],
     });
-  
+
     await roundEntity.save();
   }
 }
 
 export async function handleParticipantDefaulted(event: SubstrateEvent): Promise<void> {
 
-  const [ rosca_id, unpaid_recipient, defaulter ] = event.event.data.toJSON() as ParticipantDefaultedEvent;
-  
+  const [rosca_id, unpaid_recipient, defaulter] = event.event.data.toJSON() as ParticipantDefaultedEvent;
+
   const rounds = await Round.getByFields([
     ["parentRoscaId", "=", rosca_id],
     ["recipient", "=", unpaid_recipient],
-  ], {limit: 1});
-  
+  ], { limit: 1 });
+
   for (const roundEntity of rounds) {
     if (!roundEntity.defaulters.includes(defaulter)) {
       roundEntity.defaulters.push(defaulter);
@@ -202,8 +202,8 @@ export async function handleContributionMade(event: SubstrateEvent): Promise<voi
   const rounds = await Round.getByFields([
     ["parentRoscaId", "=", rosca_id],
     ["recipient", "=", recipient],
-  ], {limit: 1});
-  
+  ], { limit: 1 });
+
   for (const roundEntity of rounds) {
     if (!roundEntity.actualContributors.includes(contributor)) {
       roundEntity.actualContributors.push(contributor);
@@ -219,8 +219,8 @@ export async function handleDepositDeducted(event: SubstrateEvent): Promise<void
   const rounds = await Round.getByFields([
     ["parentRoscaId", "=", rosca_id],
     ["recipient", "=", recipient],
-  ], {limit: 1});
-  
+  ], { limit: 1 });
+
   for (const roundEntity of rounds) {
     if (!roundEntity.actualContributors.includes(contributor)) {
       roundEntity.actualContributors.push(contributor);
@@ -267,7 +267,7 @@ export async function handleLeftRosca(event: SubstrateEvent): Promise<void> {
 
 }
 export async function handleRoscaComplete(event: SubstrateEvent): Promise<void> {
-  
+
   const { rosca_id } = event.event.data.toJSON() as RoscaCompleteEvent;
 
   let roscaEntity = await Rosca.get(rosca_id.toString());
@@ -308,7 +308,7 @@ export async function handleSecurityDepositContribution(event: SubstrateEvent): 
       await rosca.save();
     }
     return;
-  } 
+  }
 
   securityDeposit.amount += amount;
   await securityDeposit.save();
@@ -343,7 +343,7 @@ export async function handleSecurityDepositClaimed(event: SubstrateEvent): Promi
       rosca.totalSecurityDeposits -= amount;
       await rosca.save();
     }
-  
+
     await store.remove('SecurityDeposit', depositId);
   } catch (err) {
     logger.error(`Error processing deposit claim for ${depositId}: ${err}`);
