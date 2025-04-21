@@ -361,18 +361,3 @@ export async function handleNewRoundStarted(event: SubstrateEvent): Promise<void
 
   await rosca.save();
 }
-
-
-// type SecurityDepositContributionEvent = {
-//   rosca_id: number;
-//   depositor: string;
-// }
-
-// type RoscaManuallyEndedEvent = {
-//   rosca_id: number;
-// }
-
-// type NewRoundStartedEvent = {
-//   rosca_id: number;
-//   new_eligible_recipient: string;
-// }
