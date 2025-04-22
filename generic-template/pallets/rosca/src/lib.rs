@@ -584,7 +584,9 @@ pub mod pallet {
 				// Advance the round: update timing, rotate the order, and clear contributions.
 				Self::advance_rosca_round(rosca_id)?;
 				// Check if, after advancing, the ROSCA should be marked complete.
-				Self::check_and_complete_rosca(rosca_id)?;
+				if Self::check_and_complete_rosca(rosca_id)? {
+					return Ok(());
+				}
 				// Update local variable for the loop condition.
 				next_pay_by_timestamp = Self::next_pay_by_timestamp(rosca_id)
 					.ok_or(Error::<T>::NoNextPayByTimestamp)?;
@@ -903,7 +905,7 @@ impl<T: Config> Pallet<T> {
     }
 
     /// Checks if the ROSCA should be completed and, if so, finalizes it.
-    fn check_and_complete_rosca(rosca_id: RoscaId) -> DispatchResult {
+    fn check_and_complete_rosca(rosca_id: RoscaId) -> Result<bool, DispatchError> {
         let rosca = Self::active_roscas(rosca_id).ok_or(Error::<T>::RoscaNotActive)?;
         let final_pay_by_timestamp = Self::final_pay_by_timestamp(rosca_id)
             .ok_or(Error::<T>::FinalPayByTimestampNotFound)?;
@@ -915,8 +917,9 @@ impl<T: Config> Pallet<T> {
             CompletedRoscas::<T>::insert(rosca_id, ());
             ActiveRoscas::<T>::remove(rosca_id);
             Self::deposit_event(Event::<T>::RoscaComplete { rosca_id });
+			return Ok(true)
         }
-        Ok(())
+        Ok(false)
     }
 
 	/// Generate the future round data
