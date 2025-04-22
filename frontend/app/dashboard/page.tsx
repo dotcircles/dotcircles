@@ -2,7 +2,7 @@
 "use client"; // Needed for useEffect, useState
 
 import React, { useState, useEffect } from 'react';
-import { fetchJoinedRoscas } from '@/app/lib/data-fetchers'; // Adjust path
+import { fetchEligibleRoscas } from '@/app/lib/data-fetchers'; // Adjust path
 import { Rosca } from '@/app/lib/types';
 import RoscaList from '@/app/components/roscas/RoscaList'; // Component to render the list
 import { Spinner } from '@heroui/spinner'; // Individual import
@@ -21,7 +21,7 @@ export default function MyRoscasPage() {
       setError(null);
       try {
         // Replace 'currentUser' with actual user identifier
-        const joined = await fetchJoinedRoscas('currentUser');
+        const joined = await fetchEligibleRoscas('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY');
         setPendingRoscas(joined.filter(r => r.status === 'Pending'));
         setActiveRoscas(joined.filter(r => r.status === 'Active'));
         setCompletedRoscas(joined.filter(r => r.status === 'Completed'));

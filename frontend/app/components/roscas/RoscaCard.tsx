@@ -1,5 +1,4 @@
-// app/components/rosca/RoscaCard.tsx
-"use client"; // May need client directives for buttons/actions
+"use client";
 
 import React from 'react';
 import NextLink from 'next/link';
@@ -8,15 +7,8 @@ import { Card, CardHeader, CardBody, CardFooter } from '@heroui/card';
 import { Chip } from '@heroui/chip';
 import { Button } from '@heroui/button';
 import { Divider } from '@heroui/divider';
-import { Link } from '@heroui/link'; // HeroUI Link
-
-// Helper to format bigint currency (assuming 2 decimals)
-const formatCurrency = (amount: bigint, decimals = 2): string => {
-    const factor = BigInt(10 ** decimals);
-    const integerPart = amount / factor;
-    const fractionalPart = amount % factor;
-    return `$${integerPart.toString()}.${fractionalPart.toString().padStart(decimals, '0')}`;
-}
+import { Link } from '@heroui/link';
+import { formatCurrency } from '@/app/lib/utils';
 
 interface RoscaCardProps {
   rosca: Rosca;
@@ -57,8 +49,8 @@ export default function RoscaCard({ rosca, isInvited = false }: RoscaCardProps) 
             <span className="font-medium">{formatCurrency(rosca.contributionAmount)}</span>
         </div>
          <div className="flex justify-between text-sm mb-1">
-            <span className="text-default-600">Participants:</span>
-            <span className="font-medium">{rosca.eligibleParticipants.length} / {rosca.totalParticipants}</span>
+            <span className="text-default-600">Participant Threshold:</span>
+            <span className="font-medium">{rosca.minParticipants} / {rosca.totalParticipants}</span>
         </div>
          <div className="flex justify-between text-sm">
             <span className="text-default-600">Creator:</span>

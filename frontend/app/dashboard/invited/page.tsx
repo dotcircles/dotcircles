@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchInvitedRoscas } from '@/app/lib/data-fetchers';
+import { fetchEligibleRoscas } from '@/app/lib/data-fetchers';
 import { Rosca } from '@/app/lib/types';
 import RoscaList from '@/app/components/roscas/RoscaList'; // Reuse the list component
 import { Spinner } from '@heroui/spinner';
@@ -18,7 +18,8 @@ export default function InvitedRoscasPage() {
       setError(null);
       try {
         // Replace 'currentUser' with actual user identifier
-        const invites = await fetchInvitedRoscas('currentUser');
+        const eligible = await fetchEligibleRoscas('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY');
+        const invites = eligible.filter((r) => r.status == 'Pending');
         setInvitedRoscas(invites);
       } catch (err) {
         console.error("Failed to fetch invited ROSCAs:", err);

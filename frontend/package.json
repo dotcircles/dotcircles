@@ -59,6 +59,7 @@
     "@walletconnect/universal-provider": "^2.20.0",
     "clsx": "2.1.1",
     "framer-motion": "~12.7.2",
+    "graphql-request": "^7.1.2",
     "intl-messageformat": "^10.7.16",
     "next": "15.3.0",
     "next-themes": "^0.4.6",

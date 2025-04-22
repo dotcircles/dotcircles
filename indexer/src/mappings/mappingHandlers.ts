@@ -146,7 +146,7 @@ export async function handleParticipantDefaulted(event: SubstrateEvent): Promise
   logger.info(`ParticipantDefaultedEvent: rosca_id=${rosca_id}, recipient=${unpaid_recipient}, defaulter=${defaulter}`);
 
   const rounds = await Round.getByFields([
-    ["parentRoscaId", "=", rosca_id],
+    ["parentRoscaId", "=", rosca_id.toString()],
     ["recipient", "=", unpaid_recipient]
   ], { limit: 1 });
 
@@ -164,7 +164,7 @@ export async function handleContributionMade(event: SubstrateEvent): Promise<voi
   logger.info(`ContributionMadeEvent: rosca_id=${rosca_id}, contributor=${contributor}, amount=${amount}`);
 
   const rounds = await Round.getByFields([
-    ["parentRoscaId", "=", rosca_id],
+    ["parentRoscaId", "=", rosca_id.toString()],
     ["recipient", "=", recipient]
   ], { limit: 1 });
 
@@ -182,7 +182,7 @@ export async function handleDepositDeducted(event: SubstrateEvent): Promise<void
   logger.info(`DepositDeductedEvent: rosca_id=${rosca_id}, contributor=${contributor}, amount=${amount}`);
 
   const rounds = await Round.getByFields([
-    ["parentRoscaId", "=", rosca_id],
+    ["parentRoscaId", "=", rosca_id.toString()],
     ["recipient", "=", recipient]
   ], { limit: 1 });
 

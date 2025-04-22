@@ -1,44 +1,17 @@
 // app/components/rosca/RoscaDetailHeader.tsx
 "use client";
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Rosca } from '@/app/lib/types';
 import { Card, CardHeader, CardBody, CardFooter } from '@heroui/card';
 import { Button } from '@heroui/button';
 import { Chip } from '@heroui/chip';
 import { Divider } from '@heroui/divider';
 import { Link } from '@heroui/link';
-import { Avatar, AvatarGroup } from '@heroui/avatar'; // Import Avatar components
-import { Tooltip } from '@heroui/tooltip'; // Import Tooltip for hover
+import { Avatar, AvatarGroup } from '@heroui/avatar';
+import { Tooltip } from '@heroui/tooltip';
 import { submitLeaveRosca, submitStartRosca } from '@/app/lib/data-fetchers';
-
-// Helper Functions (ensure these are correctly imported or defined in utils)
-const formatCurrency = (amount: bigint | undefined, decimals = 2): string => {
-    if (typeof amount !== 'bigint') return "$0.00";
-    const factor = BigInt(10 ** decimals);
-    const integerPart = amount / factor;
-    const fractionalPart = amount % factor;
-    return `$${integerPart.toString()}.${fractionalPart.toString().padStart(decimals, '0')}`;
-};
-const formatTimestamp = (timestamp: bigint | undefined): string => {
-    if (typeof timestamp !== 'bigint') return 'N/A';
-    const date = new Date(Number(timestamp) * 1000);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-};
-const truncateAddress = (address: string | null | undefined, start = 6, end = 4): string => {
-     if (!address) return 'N/A';
-    if (address.length <= start + end + 3) return address;
-    return `${address.substring(0, start)}...${address.substring(address.length - end)}`;
-};
-const formatFrequency = (freq: bigint | undefined): string => {
-    if (typeof freq !== 'bigint') return 'N/A';
-    const seconds = Number(freq);
-    if (seconds === 604800) return 'Weekly';
-    if (seconds === 1209600) return 'Bi-Weekly';
-    if (seconds === 2592000) return 'Monthly';
-    return `${seconds} seconds`; // Fallback
-}
+import { formatCurrency, formatFrequency, formatTimestamp, truncateAddress } from '@/app/lib/utils';
 
 interface RoscaDetailHeaderProps {
     rosca: Rosca;
@@ -56,7 +29,18 @@ export default function RoscaDetailHeader({
     onOpenDepositModal
 }: RoscaDetailHeaderProps) {
 
-    const isCreator = rosca.creator === currentUserAddress;
+    const joinedAccounts = useMemo(
+        () =>
+          new Set(
+            rosca.eligibilities
+              .filter((e) => e.joinedAt > 0)
+              .map((e) => e.accountId)
+          ),
+        [rosca.eligibilities]
+      );
+    
+    const hasMetThreshold = joinedAccounts.size >= rosca.minParticipants;
+    const hasJoined = joinedAccounts.has(currentUserAddress);
     const isParticipant = rosca.eligibleParticipants.includes(currentUserAddress);
 
     return (
@@ -84,22 +68,25 @@ export default function RoscaDetailHeader({
                  </div>
                  {/* Participants Avatar Group - Takes more space */}
                  <div className="col-span-2 md:col-span-1">
-                     <span className="font-medium text-default-600 block mb-2">
-                        {/* Participants ({rosca.eligibleParticipants.length}/{rosca.totalParticipants}) */}
-                        Participants
+                    <span className="font-medium text-default-600 block mb-2">
+                        Participants ({joinedAccounts.size}/{rosca.totalParticipants})
                     </span>
+
                     <AvatarGroup isBordered max={10} size="sm">
-                         {rosca.eligibleParticipants.map((participant) => (
-                             <Tooltip key={participant} content={truncateAddress(participant)} placement="top" delay={0} closeDelay={0}>
-                                 <Avatar
-                                     name={truncateAddress(participant)}
-                                     size="sm"
-                                     // You could add profile picture 'src' here if available
-                                 />
-                             </Tooltip>
-                         ))}
+                        {rosca.eligibleParticipants.map((addr) => {
+                        const joined = joinedAccounts.has(addr);
+                        return (
+                            <Tooltip key={addr} content={truncateAddress(addr)} placement="top">
+                            <Avatar
+                                name={truncateAddress(addr)}
+                                size="sm"
+                                color={joined ? 'success' : 'default'}
+                            />
+                            </Tooltip>
+                        );
+                        })}
                     </AvatarGroup>
-                 </div>
+                </div>
 
                  {/* Row 2 */}
                  <div>
@@ -117,17 +104,42 @@ export default function RoscaDetailHeader({
 
             </CardBody>
             <Divider />
-            <CardFooter className="gap-2 flex-wrap pt-4"> {/* Added padding top */}
-                {rosca.status === 'Pending' && isCreator &&
-                    <Button size="sm" color="success" variant='flat' onPress={() => onAction('start', () => submitStartRosca(rosca.roscaId))} isLoading={actionLoading['start']}>Start ROSCA</Button>
-                }
-                {rosca.status !== 'Completed' && isParticipant &&
-                    <Button size="sm" variant="bordered" onPress={onOpenDepositModal} isLoading={actionLoading['addDeposit']}>Add Security Deposit</Button>
-                }
-                {rosca.status === 'Pending' && !isCreator && isParticipant &&
-                    <Button size="sm" color="danger" variant='light' onPress={() => onAction('leave', () => submitLeaveRosca(rosca.roscaId))} isLoading={actionLoading['leave']}>Leave ROSCA</Button>
-                }
-            </CardFooter>
+            <CardFooter className="gap-2 flex-wrap pt-4">
+        {rosca.status === 'Pending' && hasJoined && hasMetThreshold && (
+          <Button
+            size="sm"
+            color="success"
+            variant="flat"
+            onPress={() => onAction('start', () => submitStartRosca(rosca.roscaId))}
+            isLoading={actionLoading['start']}
+          >
+            Start ROSCA
+          </Button>
+        )}
+
+        {rosca.status !== 'Completed' && hasJoined && (
+          <Button
+            size="sm"
+            variant="bordered"
+            onPress={onOpenDepositModal}
+            isLoading={actionLoading['addDeposit']}
+          >
+            Add Security Deposit
+          </Button>
+        )}
+
+        {rosca.status === 'Pending' && !hasJoined && isParticipant && (
+          <Button
+            size="sm"
+            color="danger"
+            variant="light"
+            onPress={() => onAction('leave', () => submitLeaveRosca(rosca.roscaId))}
+            isLoading={actionLoading['leave']}
+          >
+            Leave ROSCA
+          </Button>
+        )}
+      </CardFooter>
         </Card>
     );
 }

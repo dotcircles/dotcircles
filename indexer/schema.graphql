@@ -26,12 +26,12 @@ type Rosca @entity{
 
 type Round @entity{
   id:ID!
-  parentRosca:Rosca!
+  parentRosca:Rosca! @index
   chainRoscaId:Int!
   roundNumber:Int!
   paymentCutoff:BigInt!
   expectedContributors:[String!]!
-  recipient:String!
+  recipient:String! @index
   defaulters:[String!]!
   actualContributors: [String!]!
 }
@@ -43,7 +43,7 @@ type Account @entity {
 
 type RoscaEligibility @entity {
   id: ID!
-  parentRosca: Rosca! 
+  parentRosca: Rosca!
   account: Account!
   joinedAt: BigInt
 }

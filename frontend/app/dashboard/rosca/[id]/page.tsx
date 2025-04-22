@@ -17,7 +17,7 @@ import { Spacer } from '@heroui/spacer';
 import { useDisclosure } from "@heroui/modal"; // For modal state
 
 // --- Data & Types ---
-import { fetchRoscaDetails, submitContribute, submitAddSecurityDeposit, submitStartRosca, submitLeaveRosca } from '@/app/lib/data-fetchers';
+import { fetchRoscaDetails } from '@/app/lib/data-fetchers';
 import { Rosca, Round } from '@/app/lib/types';
 
 // --- Component ---

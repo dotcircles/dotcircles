@@ -1,86 +1,101 @@
-// app/lib/data-fetchers.ts
-import { mockInvitedRoscas, mockJoinedRoscas } from '@/app/mockData/roscas'; // Adjust path
-import { mockRoundsForRosca } from '@/app/mockData/rounds'; // Adjust path
+import { GraphQLClient } from 'graphql-request';
+import {
+    GET_ACCOUNT_ROSCAS,
+    GET_ROSCA_DETAIL,
+} from './roscaQueries';
 import { Rosca, Round } from '@/app/lib/types';
+import { hexToUtf8 } from '@/app/lib/utils';
 
-// Simulate network delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const client = new GraphQLClient(
+    process.env.NEXT_PUBLIC_SUBQUERY_ENDPOINT as string,
+    { headers: { 'Content-Type': 'application/json' } }
+);
 
-export async function fetchInvitedRoscas(userId: string): Promise<Rosca[]> {
-  console.log(`Fetching invited ROSCAs for user: ${userId}`);
-  await delay(500); // Simulate API call
-  // In real app, filter based on userId being in eligibleParticipants but not creator/joined
-  return mockInvitedRoscas.filter(r => r.eligibleParticipants.includes('You')); // Simple mock filter
+/* ---------- helpers ---------- */
+
+function toBigInt(value: unknown): bigint {
+    return typeof value === 'string' || typeof value === 'number'
+        ? BigInt(value)
+        : BigInt(0);
 }
 
-export async function fetchJoinedRoscas(userId: string): Promise<Rosca[]> {
-  console.log(`Fetching joined ROSCAs for user: ${userId}`);
-  await delay(700); // Simulate API call
-  // In real app, query where userId is a participant (creator or joined)
-  return mockJoinedRoscas.filter(r => r.eligibleParticipants.includes('You'));
+function mapRound(raw: any): Round {
+    return {
+        id: raw.id,
+        parentRoscaId: raw.parentRosca?.id ?? '',
+        chainRoscaId: raw.chainRoscaId ?? 0,
+        roundNumber: raw.roundNumber ?? 0,
+        paymentCutoff: toBigInt(raw.paymentCutoff),
+        recipient: raw.recipient,
+        expectedContributors: raw.expectedContributors ?? [],
+        contributors: raw.actualContributors ?? [],
+        defaulters: raw.defaulters ?? [],
+    };
 }
 
-export async function fetchRoscaDetails(roscaId: string): Promise<Rosca | null> {
-    console.log(`Fetching details for ROSCA: ${roscaId}`);
-    await delay(600);
-    const rosca = [...mockInvitedRoscas, ...mockJoinedRoscas].find(r => r.id === roscaId);
-    if (rosca) {
-        // Fetch related rounds (in real app, this might be part of the initial query or separate)
-        rosca.rounds = mockRoundsForRosca[roscaId] || [];
-        return rosca;
-    }
-    return null;
+function deriveStatus(raw: any): 'Pending' | 'Active' | 'Completed' {
+    if (raw.completed) return 'Completed';
+    if (raw.startedBy) return 'Active';
+    return 'Pending';
 }
 
-// --- Placeholder Blockchain Interaction Functions ---
+function mapRosca(raw: any): Rosca {
+    const roundArray: any[] = Array.isArray(raw.rounds)
+        ? raw.rounds
+        : raw.rounds?.nodes ?? [];
 
-export async function submitCreateRosca(formData: any): Promise<{ success: boolean, roscaId?: number, error?: string }> {
-    console.log("Submitting Create ROSCA:", formData);
-    await delay(1500);
-    // TODO: Integrate with Polkadot.js API to sign and send extrinsic
-    // Example: call api.tx.rosca.createRosca(...)
-    alert("Placeholder: Create ROSCA submitted!");
-    return { success: true, roscaId: Math.floor(Math.random() * 1000) }; // Simulate success
+    const rounds: Round[] = roundArray.map(mapRound);
+
+    const eligibilities = (raw.eligibilities?.nodes ?? []).map((e: any) => ({
+        accountId: e.account?.id ?? '',
+        joinedAt: BigInt(e.joinedAt ?? 0),
+    }));
+
+    return {
+        id: raw.id,
+        roscaId: raw.roscaId,
+        name: hexToUtf8(raw.name),
+        creator: raw.creator,
+        paymentAsset: raw.paymentAsset,
+        randomOrder: raw.randomOrder,
+        totalParticipants: raw.totalParticipants,
+        minParticipants: raw.minParticipants,
+        contributionAmount: toBigInt(raw.contributionAmount),
+        contributionFrequency: toBigInt(raw.contributionFrequency),
+        startedBy: raw.startedBy ?? null,
+        startTimestamp: toBigInt(raw.startTimestamp),
+        completed: raw.completed ?? false,
+        eligibleParticipants: raw.eligibleParticipants ?? [],
+        activeParticipants: raw.activeParticipants ?? [],
+        totalSecurityDeposits: raw.totalSecurityDeposits ?? 0,
+        currentRecipient: raw.currentRecipient ?? null,
+        currentRoundNumber: raw.currentRoundNumber ?? null,
+        currentRoundPaymentCutoff: raw.currentRoundPaymentCutoff
+            ? toBigInt(raw.currentRoundPaymentCutoff)
+            : null,
+        rounds,
+        status: deriveStatus(raw),
+        eligibilities
+    };
 }
 
-export async function submitJoinRosca(roscaId: number, position?: number): Promise<{ success: boolean, error?: string }> {
-    console.log(`Submitting Join ROSCA: ${roscaId}`, `Position: ${position ?? 'any'}`);
-    await delay(1000);
-    // TODO: Integrate with Polkadot.js API
-    alert(`Placeholder: Join ROSCA ${roscaId} submitted!`);
-    return { success: true };
-}
+/* ---------- public API ---------- */
 
-export async function submitLeaveRosca(roscaId: number): Promise<{ success: boolean, error?: string }> {
-    console.log(`Submitting Leave ROSCA: ${roscaId}`);
-    await delay(1000);
-    // TODO: Integrate with Polkadot.js API
-    alert(`Placeholder: Leave ROSCA ${roscaId} submitted!`);
-    return { success: true };
-}
+export async function fetchEligibleRoscas(accountId: string): Promise<Rosca[]> {
+    const { account } = await client.request<
+        { account: { eligibleFor: { nodes: { parentRosca: any }[] } } }
+    >(GET_ACCOUNT_ROSCAS, { accountId });
 
-export async function submitStartRosca(roscaId: number): Promise<{ success: boolean, error?: string }> {
-    console.log(`Submitting Start ROSCA: ${roscaId}`);
-    await delay(1200);
-    // TODO: Integrate with Polkadot.js API
-    alert(`Placeholder: Start ROSCA ${roscaId} submitted!`);
-    return { success: true };
+    return account.eligibleFor.nodes.map(({ parentRosca }) =>
+        mapRosca(parentRosca)
+    );
 }
+export async function fetchRoscaDetails(roscaId: string | number): Promise<Rosca | null> {
+    const { roscas } = await client.request<
+        { roscas: { nodes: any[] } }
+    >(GET_ROSCA_DETAIL, {
+        roscaId: Number(roscaId)
+    });
 
-export async function submitContribute(roscaId: number): Promise<{ success: boolean, error?: string }> {
-    console.log(`Submitting Contribution for ROSCA: ${roscaId}`);
-    await delay(1000);
-    // TODO: Integrate with Polkadot.js API
-    alert(`Placeholder: Contribution for ROSCA ${roscaId} submitted!`);
-    return { success: true };
+    return roscas.nodes[0] ? mapRosca(roscas.nodes[0]) : null;
 }
-
-export async function submitAddSecurityDeposit(roscaId: number, amount: number): Promise<{ success: boolean, error?: string }> {
-    console.log(`Submitting Add Security Deposit for ROSCA: ${roscaId}, Amount: ${amount}`);
-    await delay(1000);
-     // TODO: Integrate with Polkadot.js API
-    alert(`Placeholder: Deposit added for ROSCA ${roscaId}!`);
-    return { success: true };
-}
-
-// ... add placeholders for other extrinsics like claim_security_deposit, manually_end_rosca
