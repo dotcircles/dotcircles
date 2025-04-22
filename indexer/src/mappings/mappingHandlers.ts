@@ -93,7 +93,7 @@ export async function handleRoscaCreated(event: SubstrateEvent): Promise<void> {
       id: eligibilityId,
       parentRoscaId: rosca_id.toString(),
       accountId: address,
-      joinedAt: undefined
+      joinedAt: address == creator ? BigInt(event.block.timestamp!.getTime()) : undefined
     });
     await eligibility.save();
     logger.info(`Created RoscaEligibility ${eligibilityId}`);
