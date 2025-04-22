@@ -65,7 +65,7 @@ const project: SubstrateProject = {
             kind: SubstrateHandlerKind.Event,
             handler: "handleRoscaStarted",
             filter: {
-              module: "balances",
+              module: "rosca",
               method: "RoscaStarted",
             },
           },
