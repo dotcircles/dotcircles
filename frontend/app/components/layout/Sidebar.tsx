@@ -12,6 +12,7 @@ import { User } from "@heroui/user";
 import { Divider } from "@heroui/divider";
 import { ScrollShadow } from "@heroui/scroll-shadow";
 import { Link } from "@heroui/link"; // HeroUI Link for styling
+import WalletConnectButton from "@/app/lib/wallet/WalletConnectButton";
 
 // --- Icons (Replace with actual icons) ---
 const PlaceholderIcon = ({ size = 20 }: { size?: number }) => ('');
@@ -43,6 +44,7 @@ export default function Sidebar() {
         <span className="font-bold text-inherit text-lg">FinDash</span>
       </div>
 
+      <WalletConnectButton />
       {/* Navigation */}
       <ScrollShadow hideScrollBar className="flex-grow overflow-y-auto -mr-4 pr-4">
         <Listbox

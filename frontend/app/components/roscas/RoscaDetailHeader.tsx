@@ -10,8 +10,10 @@ import { Divider } from '@heroui/divider';
 import { Link } from '@heroui/link';
 import { Avatar, AvatarGroup } from '@heroui/avatar';
 import { Tooltip } from '@heroui/tooltip';
-import { submitLeaveRosca, submitStartRosca } from '@/app/lib/data-fetchers';
 import { formatCurrency, formatFrequency, formatTimestamp, truncateAddress } from '@/app/lib/utils';
+import { useSubmitJoinRosca, useSubmitLeaveRosca, useSubmitStartRosca  } from '@/app/lib/hooks/useSubmitExtrinsic';
+import { useWallet } from '@/app/lib/wallet/WalletProvider';
+
 
 interface RoscaDetailHeaderProps {
     rosca: Rosca;
@@ -29,6 +31,9 @@ export default function RoscaDetailHeader({
     onOpenDepositModal
 }: RoscaDetailHeaderProps) {
 
+    const joinRosca = useSubmitJoinRosca();
+    const leaveRosca = useSubmitLeaveRosca();
+
     const joinedAccounts = useMemo(
         () =>
           new Set(
@@ -38,10 +43,12 @@ export default function RoscaDetailHeader({
           ),
         [rosca.eligibilities]
       );
+
+    const { currentAccount } = useWallet();
     
     const hasMetThreshold = joinedAccounts.size >= rosca.minParticipants;
-    const hasJoined = joinedAccounts.has(currentUserAddress);
-    const isParticipant = rosca.eligibleParticipants.includes(currentUserAddress);
+    const hasJoined = joinedAccounts.has(currentAccount?.address);
+    const isParticipant = rosca.eligibleParticipants.includes(currentAccount?.address);
 
     return (
         <Card shadow="sm"> {/* Added shadow prop for consistency */}
@@ -105,6 +112,18 @@ export default function RoscaDetailHeader({
             </CardBody>
             <Divider />
             <CardFooter className="gap-2 flex-wrap pt-4">
+                {rosca.status === 'Pending' && !hasJoined && isParticipant && (
+                    <Button
+                    size="sm"
+                    color="primary"
+                    variant="flat"
+                    onPress={() => onAction('join', () => joinRosca(rosca.roscaId))}
+                    isLoading={actionLoading['join']}
+                    >
+                    Join ROSCA
+                    </Button>
+                )}
+
         {rosca.status === 'Pending' && hasJoined && hasMetThreshold && (
           <Button
             size="sm"
@@ -128,12 +147,12 @@ export default function RoscaDetailHeader({
           </Button>
         )}
 
-        {rosca.status === 'Pending' && !hasJoined && isParticipant && (
+        {rosca.status === 'Pending' && hasJoined && isParticipant && (
           <Button
             size="sm"
             color="danger"
             variant="light"
-            onPress={() => onAction('leave', () => submitLeaveRosca(rosca.roscaId))}
+            onPress={() => onAction('leave', () => leaveRosca(rosca.roscaId))}
             isLoading={actionLoading['leave']}
           >
             Leave ROSCA

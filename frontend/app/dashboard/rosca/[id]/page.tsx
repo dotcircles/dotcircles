@@ -19,11 +19,13 @@ import { useDisclosure } from "@heroui/modal"; // For modal state
 // --- Data & Types ---
 import { fetchRoscaDetails } from '@/app/lib/data-fetchers';
 import { Rosca, Round } from '@/app/lib/types';
+import { useSubmitAddToSecurityDeposit } from '@/app/lib/hooks/useSubmitExtrinsic';
 
 // --- Component ---
 export default function RoscaDetailsPage() {
     const params = useParams();
     const roscaId = params.id as string;
+    const addToSecurityDeposit = useSubmitAddToSecurityDeposit();
 
     const [rosca, setRosca] = useState<Rosca | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -88,7 +90,7 @@ export default function RoscaDetailsPage() {
         if (rosca) {
             // We wrap the specific submit function call within the generic handler
             // to benefit from the centralized loading/error/refresh logic
-             await handleAction('addDeposit', () => submitAddSecurityDeposit(rosca.roscaId, amount));
+             await handleAction('addDeposit', () => addToSecurityDeposit(rosca.roscaId, amount));
              onDepositModalClose(); // Close modal only if action was attempted (handleAction handles success/error alerts)
         }
      };
