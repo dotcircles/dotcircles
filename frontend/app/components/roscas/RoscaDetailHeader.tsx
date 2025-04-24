@@ -33,6 +33,7 @@ export default function RoscaDetailHeader({
 
     const joinRosca = useSubmitJoinRosca();
     const leaveRosca = useSubmitLeaveRosca();
+    const startRosca = useSubmitStartRosca();
 
     const joinedAccounts = useMemo(
         () =>
@@ -129,7 +130,7 @@ export default function RoscaDetailHeader({
             size="sm"
             color="success"
             variant="flat"
-            onPress={() => onAction('start', () => submitStartRosca(rosca.roscaId))}
+            onPress={() => onAction('start', () => startRosca(rosca.roscaId))}
             isLoading={actionLoading['start']}
           >
             Start ROSCA

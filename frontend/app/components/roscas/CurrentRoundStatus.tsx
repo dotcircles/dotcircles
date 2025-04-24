@@ -8,8 +8,8 @@ import { Button } from '@heroui/button';
 import { Avatar } from '@heroui/avatar';
 import { Tooltip } from '@heroui/tooltip';
 import { Divider } from '@heroui/divider';
-import { submitContribute } from '@/app/lib/data-fetchers';
 import { formatCurrency, formatTimestamp, truncateAddress } from '@/app/lib/utils';
+import { useSubmitJoinRosca, useSubmitContributeToRosca } from '@/app/lib/hooks/useSubmitExtrinsic';
 
 const CheckIcon = () => <svg className="text-success" fill="currentColor" height="1em" viewBox="0 0 16 16" width="1em"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"></path></svg>;
 const ClockIcon = () => <svg className="text-warning" fill="currentColor" height="1em" viewBox="0 0 16 16" width="1em"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg>;
@@ -29,6 +29,8 @@ export default function CurrentRoundStatus({
     actionLoading,
     onAction
 }: CurrentRoundStatusProps) {
+
+    const contributeToRosca = useSubmitContributeToRosca();
 
     if (rosca.status !== 'Active' || !currentRound) {
         return null; // Don't render if not active or no current round
@@ -75,7 +77,7 @@ export default function CurrentRoundStatus({
                     <CardFooter className="justify-center">
                         <Button
                             color="primary"
-                            onPress={() => onAction('contribute', () => submitContribute(rosca.roscaId))}
+                            onPress={() => onAction('contribute', () => contributeToRosca(rosca.roscaId))}
                             isLoading={actionLoading['contribute']}
                         >
                             Contribute {formatCurrency(rosca.contributionAmount)} Now

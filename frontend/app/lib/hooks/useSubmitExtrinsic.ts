@@ -8,6 +8,7 @@ import type { Signer } from "@polkadot/api/types";
 
 interface TxResult {
     success: boolean;
+    blockHash?: string;
     error?: string;
 }
 
@@ -42,14 +43,16 @@ async function executeTx(
                 { signer: injector.signer as Signer, nonce: -1 },
                 (result: SubmittableResult) => {
                     if (result.status.isFinalized) {
+                        const blockHash = result.status.asFinalized.toString();
+
                         const evt = result.events.find(
                             ({ event: { section: s, method: m } }) =>
                                 s === section && m === method
                         );
                         if (evt) {
-                            resolve({ success: true });
+                            resolve({ success: true, blockHash });
                         } else {
-                            reject({ success: false, error: `Missing ${method} event` });
+                            reject({ success: false, error: `Missing ${method} event`, blockHash });
                         }
                     }
                 }
@@ -115,6 +118,25 @@ export function useSubmitStartRosca() {
             () => api.tx.rosca.startRosca(roscaId),
             "rosca",
             "RoscaStarted"
+        );
+    };
+}
+
+
+export function useSubmitContributeToRosca() {
+    const api = useApi();
+    const { currentAccount } = useWallet();
+
+    return async (roscaId: number): Promise<TxResult> => {
+        if (!currentAccount) {
+            return { success: false, error: "Wallet not connected" };
+        }
+        return executeTx(
+            api,
+            currentAccount.address,
+            () => api.tx.rosca.contributeToRosca(roscaId),
+            "rosca",
+            "ContributionMade"
         );
     };
 }

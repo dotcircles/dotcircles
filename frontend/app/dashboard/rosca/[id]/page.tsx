@@ -20,6 +20,7 @@ import { useDisclosure } from "@heroui/modal"; // For modal state
 import { fetchRoscaDetails } from '@/app/lib/data-fetchers';
 import { Rosca, Round } from '@/app/lib/types';
 import { useSubmitAddToSecurityDeposit } from '@/app/lib/hooks/useSubmitExtrinsic';
+import { useWallet } from '@/app/lib/wallet/WalletProvider';
 
 // --- Component ---
 export default function RoscaDetailsPage() {
@@ -35,7 +36,8 @@ export default function RoscaDetailsPage() {
     // Modal state
     const { isOpen: isDepositModalOpen, onOpen: onDepositModalOpen, onOpenChange: onDepositModalOpenChange, onClose: onDepositModalClose } = useDisclosure();
 
-    const currentUserAddress = "You"; // Replace with actual user logic
+    const { currentAccount } = useWallet()
+    const currentUserAddress = currentAccount?.address;
 
      // Fetching logic
      useEffect(() => {

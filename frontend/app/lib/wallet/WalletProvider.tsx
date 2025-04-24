@@ -24,43 +24,68 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // ───────── initial extension detection ─────────
   useEffect(() => {
-    // run only in browser
     if (typeof window === "undefined") return;
-
+  
     (async () => {
-      // lazy‑import the extension‑dapp at runtime
-      const { web3Enable } = await import("@polkadot/extension-dapp");
+      const { web3Enable, web3Accounts } = await import("@polkadot/extension-dapp");
       const exts = await web3Enable("DOTCIRCLES");
       setExtensions(exts);
+  
+      const storedExt = localStorage.getItem("wallet:ext");
+      const storedAddress = localStorage.getItem("wallet:address");
+  
+      if (storedExt) {
+        const ext = exts.find((e) => e.name === storedExt);
+        if (ext) {
+          const allAccounts = await web3Accounts();
+          const filtered = allAccounts.filter((acc) => acc.meta.source === ext.name);
+  
+          setCurrentExt(ext);
+          setAccounts(filtered);
+  
+          const acct = filtered.find((acc) => acc.address === storedAddress);
+          setCurrentAccount(acct ?? filtered[0] ?? null);
+        }
+      }
     })();
   }, []);
 
   const connect = async (ext: InjectedExtension) => {
-    // again, ensure client side
     if (typeof window === "undefined") return;
-
-    // dynamically import these APIs
+  
     const { web3Accounts } = await import("@polkadot/extension-dapp");
     await import("@polkadot/extension-dapp").then((m) => m.web3Enable("DOTCIRCLES"));
-
-    // fetch *all* accounts, then filter by source
+  
     const all = await web3Accounts();
     const filtered = all.filter((acc) => acc.meta.source === ext.name);
-
+  
     setCurrentExt(ext);
     setAccounts(filtered);
     setCurrentAccount(filtered[0] ?? null);
+  
+    // Save to localStorage
+    localStorage.setItem("wallet:ext", ext.name);
+    if (filtered[0]) {
+      localStorage.setItem("wallet:address", filtered[0].address);
+    }
   };
-
+  
   const selectAccount = (address: string) => {
-    setCurrentAccount(accounts.find((a) => a.address === address) ?? null);
+    const selected = accounts.find((a) => a.address === address) ?? null;
+    setCurrentAccount(selected);
+    if (selected) {
+      localStorage.setItem("wallet:address", selected.address);
+    }
   };
-
+  
   const disconnect = () => {
     setCurrentExt(null);
     setAccounts([]);
     setCurrentAccount(null);
+    localStorage.removeItem("wallet:ext");
+    localStorage.removeItem("wallet:address");
   };
+  
 
   return (
     <WalletCtx.Provider value={{ extensions, accounts, currentExt, currentAccount, connect, selectAccount, disconnect }}>
