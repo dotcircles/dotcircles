@@ -7,8 +7,10 @@ import { Rosca } from '@/app/lib/types';
 import RoscaList from '@/app/components/roscas/RoscaList'; // Component to render the list
 import { Spinner } from '@heroui/spinner'; // Individual import
 import {Tabs, Tab} from "@heroui/tabs"; // Individual import
+import { useWallet } from '../lib/wallet/WalletProvider';
 
 export default function MyRoscasPage() {
+  const { currentAccount } = useWallet();
   const [pendingRoscas, setPendingRoscas] = useState<Rosca[]>([]);
   const [activeRoscas, setActiveRoscas] = useState<Rosca[]>([]);
   const [completedRoscas, setCompletedRoscas] = useState<Rosca[]>([]);
@@ -21,7 +23,7 @@ export default function MyRoscasPage() {
       setError(null);
       try {
         // Replace 'currentUser' with actual user identifier
-        const joined = await fetchEligibleRoscas('5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY');
+        const joined = await fetchEligibleRoscas(currentAccount?.address);
         setPendingRoscas(joined.filter(r => r.status === 'Pending'));
         setActiveRoscas(joined.filter(r => r.status === 'Active'));
         setCompletedRoscas(joined.filter(r => r.status === 'Completed'));

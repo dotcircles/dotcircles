@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 
 // --- Component Imports ---
 import RoscaDetailHeader from '@/app/components/roscas/RoscaDetailHeader';
@@ -25,7 +25,11 @@ import { useWallet } from '@/app/lib/wallet/WalletProvider';
 // --- Component ---
 export default function RoscaDetailsPage() {
     const params = useParams();
-    const roscaId = params.id as string;
+    const pathname = usePathname();
+    console.log(pathname);
+    const roscaId = (params?.id as string) ?? pathname.split("/").filter(Boolean).pop() ?? "";
+
+    
     const addToSecurityDeposit = useSubmitAddToSecurityDeposit();
 
     const [rosca, setRosca] = useState<Rosca | null>(null);

@@ -9,7 +9,7 @@ export const formatCurrency = (amount: bigint | undefined | null, decimals = 2):
 export const formatTimestamp = (timestamp: bigint | undefined | null): string => {
     if (typeof timestamp !== 'bigint') return 'N/A'; // Handle null/undefined
     try {
-        const date = new Date(Number(timestamp) * 1000);
+        const date = new Date(Number(timestamp));
         // Check if the date is valid after conversion
         if (isNaN(date.getTime())) {
             return 'Invalid Date';
@@ -41,7 +41,7 @@ export function hexToUtf8(value: string): string {
 }
 export const formatFrequency = (freq: bigint | undefined): string => {
     if (typeof freq !== 'bigint') return 'N/A';
-    const seconds = Number(freq);
+    const seconds = Number(freq) / 1000;
     if (seconds === 604800) return 'Weekly';
     if (seconds === 1209600) return 'Bi-Weekly';
     if (seconds === 2592000) return 'Monthly';

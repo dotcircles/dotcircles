@@ -9,7 +9,7 @@ import { Button } from '@heroui/button';
 import { Image } from '@heroui/image';
 
 
-export const WalletConnectButton = () => {
+export const WalletConnect = () => {
   const [provider, setProvider] = useState<Promise<any>>();
   const [modal, setModal] = useState<WalletConnectModal>();
 

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { web3Enable, web3Accounts, web3FromSource } from "@polkadot/extension-dapp";
 import type { InjectedAccountWithMeta, InjectedExtension } from "@polkadot/extension-inject/types";
+import { useRouter } from "next/navigation";
 
 type WalletState = {
   extensions: InjectedExtension[];
@@ -21,6 +22,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [currentExt, setCurrentExt] = useState<InjectedExtension | null>(null);
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([]);
   const [currentAccount, setCurrentAccount] = useState<InjectedAccountWithMeta | null>(null);
+  const router = useRouter();
 
   // ───────── initial extension detection ─────────
   useEffect(() => {
@@ -72,10 +74,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   
   const selectAccount = (address: string) => {
     const selected = accounts.find((a) => a.address === address) ?? null;
+    console.log(selected)
     setCurrentAccount(selected);
     if (selected) {
       localStorage.setItem("wallet:address", selected.address);
     }
+    router.refresh();
   };
   
   const disconnect = () => {

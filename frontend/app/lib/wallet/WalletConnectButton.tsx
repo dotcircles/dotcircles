@@ -55,6 +55,7 @@ export default function WalletConnectButton() {
                     <p className="text-sm font-medium mb-1">Accounts</p>
                     <Listbox
                       aria-label="accounts"
+                      selectionMode="single"
                       selectedKeys={currentAccount ? [currentAccount.address] : []}
                       onSelectionChange={(keys) => selectAccount(Array.from(keys)[0] as string)}
                     >
