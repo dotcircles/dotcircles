@@ -27,7 +27,7 @@ export default function AddDepositModal({
 
     const handleConfirm = async () => {
         setError(null);
-        const amount = parseInt(depositAmount);
+        const amount = parseInt(depositAmount) * 1_000_000;
         if (!isNaN(amount) && amount > 0) {
             await onConfirmDeposit(amount);
             // Parent component handles closing and resetting input via the promise result

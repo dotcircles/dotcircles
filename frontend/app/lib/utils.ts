@@ -1,9 +1,6 @@
-export const formatCurrency = (amount: bigint | undefined | null, decimals = 2): string => {
+export const formatCurrency = (amount: bigint | undefined | null): string => {
     if (typeof amount !== 'bigint') return "$0.00"; // Handle null/undefined
-    const factor = BigInt(10 ** decimals);
-    const integerPart = amount / factor;
-    const fractionalPart = amount % factor;
-    return `$${integerPart.toString()}.${fractionalPart.toString().padStart(decimals, '0')}`;
+    return `$${amount.toString()}.00`;
 };
 
 export const formatTimestamp = (timestamp: bigint | undefined | null): string => {

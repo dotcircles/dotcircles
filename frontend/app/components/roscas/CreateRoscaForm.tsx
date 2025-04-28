@@ -23,9 +23,9 @@ import { Key } from '@react-types/shared';
 
 // Define frequency options
 const frequencyOptions = [
-    { key: '604800', label: 'Weekly' },
-    { key: '1209600', label: 'Bi-Weekly' },
-    { key: '2592000', label: 'Monthly' },
+    { key: '604800000', label: 'Weekly' },
+    { key: '1209600000', label: 'Bi-Weekly' },
+    { key: '2592000000', label: 'Monthly' },
 ];
 
 // Props interface
@@ -44,6 +44,7 @@ export default function CreateRoscaForm({ onSubmitAction, currentUserAddress }: 
         minParticipants: '', // Keep min participants
         randomOrder: false,
         invitedParticipants: [] as string[],
+        paymentAsset: 'USDT'
     });
     const [newInvite, setNewInvite] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -133,21 +134,20 @@ export default function CreateRoscaForm({ onSubmitAction, currentUserAddress }: 
             ? formData.startByTimestamp.toDate(getLocalTimeZone())
             : null;
         const startTimestampEpochSeconds = startTimestampDate
-            ? BigInt(Math.floor(startTimestampDate.getTime() / 1000))
+            ? BigInt(Math.floor(startTimestampDate.getTime()))
             : BigInt(0);
 
         if (startTimestampEpochSeconds === BigInt(0)) { /* ... */ }
 
         const payload = {
             name: formData.name,
-            random_order: formData.randomOrder,
-            minimum_participant_threshold: minP,
-            number_of_participants: calculatedTotalParticipants, // Use calculated value
-            contribution_amount: contribAmountNum,
-            paymentAsset: { id: 0 },
-            contribution_frequency: BigInt(formData.contributionFrequency),
-            start_by_timestamp: startTimestampEpochSeconds,
-            invited_pre_verified_participants: formData.invitedParticipants,
+            randomOrder: formData.randomOrder,
+            minimumParticipantThreshold: minP,
+            contributionAmount: contribAmountNum,
+            paymentAsset: formData.paymentAsset,
+            contributionFrequency: BigInt(formData.contributionFrequency),
+            startByTimestamp: startTimestampEpochSeconds,
+            invitedPreVerifiedParticipants: formData.invitedParticipants,
         };
 
         // --- Submission ---
@@ -175,8 +175,24 @@ export default function CreateRoscaForm({ onSubmitAction, currentUserAddress }: 
                          {/* Contribution & Frequency */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <NumberInput isRequired label="Contribution Amount" name="contributionAmount" placeholder="0" min={1} value={formData.contributionAmount === '' ? undefined : Number(formData.contributionAmount)} onValueChange={handleNumberChange('contributionAmount')} description="Amount each member contributes per round."/>
-                             <Select isRequired label="Contribution Frequency" name="contributionFrequency" placeholder="Select frequency" selectedKeys={formData.contributionFrequency ? new Set([formData.contributionFrequency]) : undefined} onSelectionChange={(keys) => handleSelectChange('contributionFrequency')(keys as Set<Key>)}>
-                                {frequencyOptions.map((freq) => (<SelectItem key={freq.key} /* value={freq.key} <-- REMOVED */ >{freq.label}</SelectItem>))}
+                             <Select
+                                selectionMode="single"
+                                isRequired
+                                label="Contribution Frequency"
+                                selectedKeys={new Set([formData.contributionFrequency])}
+                                onSelectionChange={(keys) => {
+                                    const key = Array.from(keys)[0] as string;
+                                    setFormData(prev => ({
+                                    ...prev,
+                                    contributionFrequency: key
+                                    }));
+                                }}
+                                >
+                                {frequencyOptions.map(freq => (
+                                    <SelectItem key={freq.key}>
+                                    {freq.label}
+                                    </SelectItem>
+                                ))}
                             </Select>
                         </div>
 
@@ -195,9 +211,24 @@ export default function CreateRoscaForm({ onSubmitAction, currentUserAddress }: 
                             <DatePicker isRequired label="Target Start Date" name="startByTimestamp" value={formData.startByTimestamp} onChange={handleDateChange} minValue={today(getLocalTimeZone()).add({ days: 1 })} showMonthAndYearPickers description="The date by which the ROSCA must be started."/>
                         </div>
 
-                        <Switch name="randomOrder" isSelected={formData.randomOrder} onValueChange={handleSwitchChange}>
-                            Randomize Payout Order?
-                        </Switch>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Select
+                            selectionMode="single"
+                            isRequired
+                            label="Payment Asset"
+                            selectedKeys={new Set([formData.paymentAsset])}
+                            onSelectionChange={(keys) => {
+                                const key = Array.from(keys)[0] as string;
+                                setFormData(prev => ({
+                                ...prev,
+                                paymentAsset: key
+                                }));
+                            }}
+                            >
+                            <SelectItem key="USDT">USDT</SelectItem>
+                            <SelectItem key="USDC">USDC</SelectItem>
+                        </Select>
+                        </div>
 
                         <Divider className="my-2"/>
 
