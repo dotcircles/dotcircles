@@ -61,11 +61,25 @@ export default function RoscaDetailsPage() {
      // Memoized round data
     const { pastRounds, futureRounds, currentRound, participantOrder } = useMemo(() => {
         if (!rosca || !rosca.rounds) return { pastRounds: [], futureRounds: [], currentRound: null, participantOrder: [] };
-         const nowSec = BigInt(Math.floor(Date.now() / 1000));
          const sortedRounds = [...rosca.rounds].sort((a, b) => a.roundNumber - b.roundNumber);
-         const past = sortedRounds.filter(r => r.paymentCutoff < nowSec);
-         const future = sortedRounds.filter(r => r.paymentCutoff >= nowSec);
-         const current = rosca.status === 'Active' ? (future[0] || past[past.length - 1] || null) : null;
+         const isCompleted = (round: Round) => {
+            return round.expectedContributors?.length > 0 &&
+                   round.contributors?.length === round.expectedContributors.length;
+        };
+        const past: Round[] = [];
+        let current: Round | null = null;
+        const future: Round[] = [];
+    
+        for (const round of sortedRounds) {
+            if (isCompleted(round)) {
+                past.push(round);
+            } else if (!current) {
+                current = round;
+            } else {
+                future.push(round);
+            }
+        }
+
          const orderMap = new Map<string, number>();
          sortedRounds.forEach(r => { if (!orderMap.has(r.recipient)) { orderMap.set(r.recipient, r.roundNumber); } });
          const orderedParticipants = Array.from(orderMap.entries()).sort(([, numA], [, numB]) => numA - numB).map(([address]) => address);

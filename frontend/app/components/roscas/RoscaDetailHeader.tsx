@@ -98,7 +98,7 @@ export default function RoscaDetailHeader({
 
                  {/* Row 2 */}
                  <div>
-                    <span className="font-medium text-default-600 block mb-1">Start Date</span>
+                    <span className="font-medium text-default-600 block mb-1">Start By Date</span>
                     {formatTimestamp(rosca.startTimestamp)}
                 </div>
                  <div>

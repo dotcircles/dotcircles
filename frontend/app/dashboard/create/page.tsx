@@ -5,6 +5,7 @@ import React from 'react';
 import CreateRoscaForm from '@/app/components/roscas/CreateRoscaForm';
 import { useSubmitCreateRosca } from '@/app/lib/hooks/useSubmitExtrinsic';
 import { useWallet } from '@/app/lib/wallet/WalletProvider';
+import { addToast } from '@heroui/toast';
 
 export default function CreateRoscaPage() {
 
@@ -13,8 +14,10 @@ export default function CreateRoscaPage() {
 
     const handleFormSubmit = async (payload: any) => {
         console.log("Submitting ROSCA Creation Payload:", payload);
-        
-        await createRosca(payload);
+        addToast({
+            title: "Creating ROSCA...",
+            promise: createRosca(payload),
+        });
     };
 
     return (

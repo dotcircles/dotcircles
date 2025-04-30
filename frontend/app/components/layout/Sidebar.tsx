@@ -39,9 +39,9 @@ export default function Sidebar() {
       {/* Branding */}
       <div className="flex items-center gap-2 px-2 mb-6 mt-2">
          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
-            F
+            D
          </div>
-        <span className="font-bold text-inherit text-lg">FinDash</span>
+        <span className="font-bold text-inherit text-lg">DotCircles</span>
       </div>
 
       <WalletConnectButton />

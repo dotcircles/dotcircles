@@ -36,7 +36,6 @@ async function executeTx(
 
         // 3. Build the extrinsic
         const tx = txCreator();
-        console.log("HERE IS THE FUNCTION")
         // 4. Sign & send, wait for Finalized + right event
         return new Promise((resolve, reject) => {
             tx.signAndSend(
@@ -45,6 +44,7 @@ async function executeTx(
                 (result: SubmittableResult) => {
                     if (result.status.isFinalized) {
                         const blockHash = result.status.asFinalized.toString();
+                        console.log(`TX blockhash: ${blockHash}`);
 
                         // Check for failed dispatches
                         const dispatchError = result.dispatchError;
@@ -65,6 +65,16 @@ async function executeTx(
                             console.error("Transaction Failed:", errorMessage);
                             reject({ success: false, error: errorMessage, blockHash });
                             return;
+                        } else {
+                            const evt = result.events.find(
+                                ({ event: { section: s, method: m } }) =>
+                                    s === section && m === method
+                            );
+                            if (evt) {
+                                resolve({ success: true, blockHash });
+                            } else {
+                                reject({ success: false, error: "Failed to receive event" })
+                            }
                         }
                     }
                 }

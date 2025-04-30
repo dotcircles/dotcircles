@@ -23,8 +23,6 @@ export default function RoscaProgressionStepper({ participantOrder, roscaRounds,
         return null;
     }
 
-    const nowSec = BigInt(Math.floor(Date.now() / 1000));
-
     return (
         <Card>
             <CardHeader><h2 className="text-lg font-semibold">Payout Order & Status</h2></CardHeader>
@@ -35,8 +33,11 @@ export default function RoscaProgressionStepper({ participantOrder, roscaRounds,
                     {participantOrder.map((participant, index) => {
                         const roundNum = index + 1;
                         const receivedRound = roscaRounds.find(r => r.roundNumber === roundNum && r.recipient === participant);
-                        // Consider received if the round exists and its cutoff is in the past
-                        const hasReceived = receivedRound && receivedRound.paymentCutoff < nowSec;
+
+                        const hasReceived = receivedRound &&
+                            receivedRound.expectedContributors.length > 0 &&
+                            receivedRound.contributors.length === receivedRound.expectedContributors.length;
+
                         const isCurrentRecipient = currentRoundNumber === roundNum;
 
                         const statusColor = hasReceived ? "success" : isCurrentRecipient ? "primary" : "default";

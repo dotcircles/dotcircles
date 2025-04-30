@@ -41,6 +41,7 @@
     "@heroui/table": "2.2.16",
     "@heroui/tabs": "2.2.14",
     "@heroui/theme": "2.4.13",
+    "@heroui/toast": "^2.0.9",
     "@heroui/tooltip": "^2.2.14",
     "@heroui/user": "^2.2.13",
     "@internationalized/date": "^3.8.0",

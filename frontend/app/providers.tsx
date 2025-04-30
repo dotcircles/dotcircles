@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { ApiProvider } from "@/app/lib/context/ApiContext";
 import { WalletProvider } from "./lib/wallet/WalletProvider";
+import { ToastProvider } from "@heroui/toast";
 
 export interface ProvidersProps {
   children: React.ReactNode;
@@ -27,6 +28,7 @@ export function Providers({ children, themeProps }: ProvidersProps) {
 
   return (
     <HeroUIProvider navigate={router.push}>
+      <ToastProvider />
       <NextThemesProvider {...themeProps}>
           <ApiProvider>
             <WalletProvider>
