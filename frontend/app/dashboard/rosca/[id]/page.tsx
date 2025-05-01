@@ -27,7 +27,6 @@ import { addToast } from '@heroui/toast';
 export default function RoscaDetailsPage() {
     const params = useParams();
     const pathname = usePathname();
-    console.log(pathname);
     const roscaId = (params?.id as string) ?? pathname.split("/").filter(Boolean).pop() ?? "";
 
     
@@ -41,12 +40,15 @@ export default function RoscaDetailsPage() {
     // Modal state
     const { isOpen: isDepositModalOpen, onOpen: onDepositModalOpen, onOpenChange: onDepositModalOpenChange, onClose: onDepositModalClose } = useDisclosure();
 
-    const { currentAccount } = useWallet()
+    const { currentAccount, isWalletLoading } = useWallet()
     const currentUserAddress = currentAccount?.address;
 
      // Fetching logic
      useEffect(() => {
          if (!roscaId) return;
+         if (isWalletLoading) return;
+         if (!currentAccount?.address) return;
+
          async function loadDetails() {
              setIsLoading(true); setError(null);
              try {
@@ -57,7 +59,7 @@ export default function RoscaDetailsPage() {
              finally { setIsLoading(false); }
          }
          loadDetails();
-     }, [roscaId]);
+     }, [isWalletLoading, roscaId, currentAccount?.address]);
 
      // Memoized round data
     const { pastRounds, futureRounds, currentRound, participantOrder } = useMemo(() => {
@@ -134,6 +136,8 @@ export default function RoscaDetailsPage() {
     if (isLoading) return <div className="flex justify-center items-center h-60"><Spinner label="Loading ROSCA Details..." /></div>;
     if (error) return <p className="text-danger">{error}</p>;
     if (!rosca) return <p className="text-default-500">ROSCA data not available.</p>;
+    if (isWalletLoading) return <div className="flex justify-center items-center h-40"><Spinner label="Loading wallet..." color="primary" /></div>;
+    if (!currentUserAddress) return <div className="text-center mt-10"><p className="text-lg text-default-700 mb-4">Please connect your wallet to view your Circles.</p></div>;
 
     return (
         <div className="space-y-6">
