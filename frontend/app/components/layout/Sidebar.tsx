@@ -13,6 +13,7 @@ import { Divider } from "@heroui/divider";
 import { ScrollShadow } from "@heroui/scroll-shadow";
 import { Link } from "@heroui/link"; // HeroUI Link for styling
 import WalletConnectButton from "@/app/lib/wallet/WalletConnectButton";
+import { useWallet } from "@/app/lib/wallet/WalletProvider";
 
 // --- Icons (Replace with actual icons) ---
 const PlaceholderIcon = ({ size = 20 }: { size?: number }) => ('');
@@ -22,9 +23,9 @@ const RoscasIcon = PlaceholderIcon;
 const SettingsIcon = PlaceholderIcon;
 
 const navItems = [
-  { key: "/dashboard", label: "My ROSCAs", icon: <RoscasIcon />, href: "/dashboard" },
+  { key: "/dashboard", label: "My Circles", icon: <RoscasIcon />, href: "/dashboard" },
   { key: "/dashboard/invited", label: "Invited", icon: <InboxIcon />, href: "/dashboard/invited" },
-  { key: "/dashboard/create", label: "Create ROSCA", icon: <CreateIcon />, href: "/dashboard/create" },
+  { key: "/dashboard/create", label: "Create Circle", icon: <CreateIcon />, href: "/dashboard/create" },
 ];
 
 const settingsItem = {
@@ -32,7 +33,8 @@ const settingsItem = {
 };
 
 export default function Sidebar() {
-  const pathname = usePathname(); // Get current path
+  const pathname = usePathname(); 
+  const { currentAccount } = useWallet();
 
   return (
     <aside className="h-screen w-64 flex flex-col border-r border-divider bg-content1 text-content1-foreground p-4 fixed top-0 left-0 z-40">
@@ -99,8 +101,8 @@ export default function Sidebar() {
       <div className="mt-4 pt-4 border-t border-divider"> {/* Pushes to bottom */}
         {/* <Divider className="mb-4"/> No longer needed with border-t */}
         <User
-            name="Jane Doe" // Replace with actual user data
-            description={<Link href="#" size="sm" className="text-xs">View Profile</Link>} // Use HeroUI Link
+            name={currentAccount?.meta.name} // Replace with actual user data
+            description={<Link href="#" size="sm" className="text-xs">View Profile</Link>} 
             avatarProps={{
               src: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
               size: "sm",

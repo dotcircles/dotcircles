@@ -70,7 +70,7 @@ export async function handleRoscaCreated(event: SubstrateEvent): Promise<void> {
     startTimestamp: BigInt(start_by_timestamp),
     completed: false,
     eligibleParticipants: eligible_participants,
-    activeParticipants: [],
+    activeParticipants: [creator],
     totalSecurityDeposits: 0,
     currentRoundNumber: 0
   });
@@ -201,6 +201,12 @@ export async function handleJoinedRosca(event: SubstrateEvent): Promise<void> {
 
   const eligibilityId = `${rosca_id}-${contributor}`;
   const eligibility = await RoscaEligibility.get(eligibilityId);
+  const roscaEntity = await Rosca.get(rosca_id.toString());
+
+  if (!roscaEntity) {
+    logger.warn(`Rosca not found for ${rosca_id}`);
+    return;
+  }
 
   if (!eligibility) {
     logger.warn(`RoscaEligibility not found for ${eligibilityId}`);
@@ -210,6 +216,10 @@ export async function handleJoinedRosca(event: SubstrateEvent): Promise<void> {
   if (event.block.timestamp) {
     eligibility.joinedAt = BigInt(event.block.timestamp.getTime());
     await eligibility.save();
+    if (!roscaEntity.activeParticipants.includes(contributor)) {
+      roscaEntity.activeParticipants = [contributor, ...roscaEntity.activeParticipants];
+    }
+    await roscaEntity.save();
     logger.info(`Set joinedAt for eligibility ${eligibilityId}`);
   } else {
     logger.warn(`Missing timestamp for block ${event.block.block.header.number}`);
@@ -222,6 +232,12 @@ export async function handleLeftRosca(event: SubstrateEvent): Promise<void> {
 
   const eligibilityId = `${rosca_id}-${contributor}`;
   const eligibility = await RoscaEligibility.get(eligibilityId);
+  const roscaEntity = await Rosca.get(rosca_id.toString());
+
+  if (!roscaEntity) {
+    logger.warn(`Rosca not found for ${rosca_id}`);
+    return;
+  }
 
   if (!eligibility) {
     logger.warn(`RoscaEligibility not found for ${eligibilityId}`);
@@ -231,6 +247,12 @@ export async function handleLeftRosca(event: SubstrateEvent): Promise<void> {
   eligibility.joinedAt = undefined;
   await eligibility.save();
   logger.info(`Cleared joinedAt for eligibility ${eligibilityId}`);
+
+  roscaEntity.activeParticipants = roscaEntity.activeParticipants.filter(
+    (addr) => addr !== contributor
+  );
+  await roscaEntity.save();
+  logger.info(`Removed ${contributor} from activeParticipants for rosca ${rosca_id}`);
 }
 
 export async function handleRoscaComplete(event: SubstrateEvent): Promise<void> {

@@ -47,6 +47,7 @@ export const ROSCA_ELIGIBILITIES = gql`
 
 export const GET_ACCOUNT_ROSCAS = gql`
   ${ROSCA_CARD_FIELDS}
+  ${ROSCA_ELIGIBILITIES}
 
   query GetAccountRoscas($accountId: String!) {
     account(id: $accountId) {
@@ -56,6 +57,9 @@ export const GET_ACCOUNT_ROSCAS = gql`
           joinedAt
           parentRosca {
             ...RoscaCardFields
+            eligibilities {
+              nodes { ...RoscaEligibilityFields }
+            }
           }
         }
       }

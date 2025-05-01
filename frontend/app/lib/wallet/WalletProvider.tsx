@@ -11,6 +11,7 @@ type WalletState = {
   currentExt: InjectedExtension | null;
   currentAccount: InjectedAccountWithMeta | null;
   connect: (ext: InjectedExtension) => Promise<void>;
+  isWalletLoading: boolean;
   selectAccount: (address: string) => void;
   disconnect: () => void;
 };
@@ -22,6 +23,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [currentExt, setCurrentExt] = useState<InjectedExtension | null>(null);
   const [accounts, setAccounts] = useState<InjectedAccountWithMeta[]>([]);
   const [currentAccount, setCurrentAccount] = useState<InjectedAccountWithMeta | null>(null);
+  const [isWalletLoading, setIsWalletLoading] = useState(true);
   const router = useRouter();
 
   // ───────── initial extension detection ─────────
@@ -49,6 +51,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           setCurrentAccount(acct ?? filtered[0] ?? null);
         }
       }
+      setIsWalletLoading(false);
     })();
   }, []);
 
@@ -92,7 +95,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   
 
   return (
-    <WalletCtx.Provider value={{ extensions, accounts, currentExt, currentAccount, connect, selectAccount, disconnect }}>
+    <WalletCtx.Provider value={{ extensions, accounts, currentExt, currentAccount, connect, selectAccount, disconnect, isWalletLoading }}>
       {children}
     </WalletCtx.Provider>
   );

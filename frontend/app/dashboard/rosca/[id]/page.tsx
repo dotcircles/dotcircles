@@ -21,6 +21,7 @@ import { fetchRoscaDetails } from '@/app/lib/data-fetchers';
 import { Rosca, Round } from '@/app/lib/types';
 import { useSubmitAddToSecurityDeposit } from '@/app/lib/hooks/useSubmitExtrinsic';
 import { useWallet } from '@/app/lib/wallet/WalletProvider';
+import { addToast } from '@heroui/toast';
 
 // --- Component ---
 export default function RoscaDetailsPage() {
@@ -92,16 +93,30 @@ export default function RoscaDetailsPage() {
         try {
             const result = await actionFn();
             if (!result.success) {
-                alert(`Action Failed: ${result.error || 'Unknown error'}`);
+                addToast({
+                    title: "Action failed",
+                    description: `${result.error || 'Unknown error'}`,
+                    color: 'danger',
+                })
+                // alert(`Action Failed: ${result.error || 'Unknown error'}`);
             } else {
-                alert(`Action "${actionName}" Successful!`);
+                addToast({
+                    title: `Action "${actionName}" Successful!`,
+                    description: `Action "${actionName}" Successful!`,
+                    color: 'success',
+                })
+                // alert(`Action "${actionName}" Successful!`);
                  // Force refresh data after successful action
                  setIsLoading(true); // Show loading indicator during refresh
                  const details = await fetchRoscaDetails(roscaId);
                  setRosca(details ?? null);
-                 if (!details) setError("ROSCA not found after refresh.");
+                 if (!details) setError("Circle not found after refresh.");
             }
-        } catch (err) { console.error(`Error during ${actionName}:`, err); alert(`An error occurred during ${actionName}.`); }
+        } catch (err) { console.error(`Error during ${actionName}:`, err); addToast({
+            title: "Error",
+            description: `An error occurred during ${actionName}.`,
+            color: 'danger',
+        }); }
         finally { setActionLoading(prev => ({ ...prev, [actionName]: false })); setIsLoading(false); }
     };
 

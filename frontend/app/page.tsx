@@ -1,5 +1,8 @@
+'use client'
+
 import { Button } from "@heroui/button";
 import { Link } from "@heroui/link";
+import { addToast } from "@heroui/toast";
 // import { WalletConnectButton } from "./components/ui/WalletConnect";
 
 export default function HomePage() {
@@ -22,7 +25,7 @@ export default function HomePage() {
           Go to Dashboard
         </Button>
 
-        <Button as={Link} href="/create" variant="bordered" radius="full">
+        <Button as={Link} href="/dashboard/create" variant="bordered" radius="full">
           Create a Circle
         </Button>
       </div>

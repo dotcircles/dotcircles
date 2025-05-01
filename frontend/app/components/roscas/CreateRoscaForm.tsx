@@ -12,14 +12,13 @@ import { NumberInput } from '@heroui/number-input';
 import { Chip } from '@heroui/chip';
 import { Divider } from '@heroui/divider';
 import {
-    parseDate,
     getLocalTimeZone,
     today,
-    CalendarDate,
-    DateValue // Import base DateValue type
+    DateValue
 } from "@internationalized/date";
 import { I18nProvider } from '@react-aria/i18n';
 import { Key } from '@react-types/shared';
+import { addToast } from '@heroui/toast';
 
 // Define frequency options
 const frequencyOptions = [
@@ -40,8 +39,8 @@ export default function CreateRoscaForm({ onSubmitAction, currentUserAddress }: 
         name: '',
         contributionAmount: '',
         contributionFrequency: frequencyOptions[0].key,
-        startByTimestamp: null as DateValue | null,
-        minParticipants: '', // Keep min participants
+        startByTimestamp: today(getLocalTimeZone()).add({ days: 1 }) as DateValue | null,
+        minParticipants: '',
         randomOrder: false,
         invitedParticipants: [] as string[],
         paymentAsset: 'USDT'
@@ -50,16 +49,16 @@ export default function CreateRoscaForm({ onSubmitAction, currentUserAddress }: 
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
-    // --- Handlers --- (remain mostly the same)
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
      };
     
-     const handleSelectChange = (name: string) => (key: Key | Set<Key>) => {
-         const value = typeof key === 'string' || typeof key === 'number' ? String(key) : ''; // Handle single selection key
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
+    //  const handleSelectChange = (name: string) => (key: Key | Set<Key>) => {
+    //      const value = typeof key === 'string' || typeof key === 'number' ? String(key) : ''; // Handle single selection key
+    //     setFormData(prev => ({ ...prev, [name]: value }));
+    // };
     
      const handleSwitchChange = (isSelected: boolean) => {
         setFormData(prev => ({ ...prev, randomOrder: isSelected }));
@@ -154,23 +153,25 @@ export default function CreateRoscaForm({ onSubmitAction, currentUserAddress }: 
         try {
             const result = await onSubmitAction(payload);
              // ... handle result ...
-             if (result.success) { alert(`ROSCA Created Successfully! (Mock ID: ${result.roscaId})`); }
-             else { setFormError(result.error || "Failed to create ROSCA."); }
+             if (result.success) { addToast({
+                title: "Circle successfully created!",
+              }); }
+             else { setFormError(result.error || "Failed to create Circle."); }
         } catch (error) { /* ... handle error */ }
         finally { setIsLoading(false); }
     };
 
      // --- Render ---
     return (
-         <I18nProvider locale="en-US">
+         <I18nProvider locale="en-GB">
              <Card>
                  <form onSubmit={handleSubmit}>
                      <CardHeader>
-                         <h2 className="text-xl font-semibold">New ROSCA Details</h2>
+                         <h2 className="text-xl font-semibold">New Circle Details</h2>
                      </CardHeader>
                      <CardBody className="gap-4">
                         {/* ROSCA Name */}
-                         <Input isRequired label="ROSCA Name" name="name" placeholder="E.g., Monthly Savings Club" value={formData.name} onChange={handleInputChange} />
+                         <Input isRequired label="Circle Name" name="name" placeholder="E.g., Monthly Savings Club" value={formData.name} onChange={handleInputChange} />
 
                          {/* Contribution & Frequency */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -208,7 +209,7 @@ export default function CreateRoscaForm({ onSubmitAction, currentUserAddress }: 
                                     onValueChange={handleNumberChange('minParticipants')}
                                     description="Minimum members needed before starting."
                                 />
-                            <DatePicker isRequired label="Target Start Date" name="startByTimestamp" value={formData.startByTimestamp} onChange={handleDateChange} minValue={today(getLocalTimeZone()).add({ days: 1 })} showMonthAndYearPickers description="The date by which the ROSCA must be started."/>
+                            <DatePicker isRequired label="Start By Date" name="startByTimestamp" value={formData.startByTimestamp} onChange={handleDateChange} minValue={today(getLocalTimeZone()).add({ days: 1 })} showMonthAndYearPickers description="The date by which the Circle must be started."/>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -9,19 +9,14 @@ import { Button } from '@heroui/button';
 import { Divider } from '@heroui/divider';
 import { Link } from '@heroui/link';
 import { formatCurrency } from '@/app/lib/utils';
+import { useSubmitJoinRosca } from '@/app/lib/hooks/useSubmitExtrinsic';
 
 interface RoscaCardProps {
   rosca: Rosca;
-  isInvited?: boolean; // Flag to show "Join" instead of "View"
+  isInvited?: boolean;
 }
 
 export default function RoscaCard({ rosca, isInvited = false }: RoscaCardProps) {
-
-  const handleJoin = async () => {
-      alert(`Placeholder: Joining ROSCA ${rosca.roscaId}`);
-      // const result = await submitJoinRosca(rosca.roscaId);
-      // Handle result (show success/error message, refresh list)
-  }
 
   return (
     <Card shadow="sm">
@@ -54,25 +49,20 @@ export default function RoscaCard({ rosca, isInvited = false }: RoscaCardProps) 
         </div>
          <div className="flex justify-between text-sm">
             <span className="text-default-600">Creator:</span>
-            <span className="font-medium truncate max-w-[100px]">{rosca.creator}</span> {/* Simple truncate */}
+            <span className="font-medium truncate max-w-[100px]">{rosca.creator}</span>
         </div>
-        {/* Add more relevant info like frequency or next due date if available */}
       </CardBody>
       <Divider />
       <CardFooter>
-        {isInvited ? (
-           <Button size="sm" color="primary" onPress={handleJoin}>Join</Button>
-        ) : (
-            <Button
-                size="sm"
-                variant="flat"
-                color="primary"
-                href={`/dashboard/rosca/${rosca.id}`} // Link to details page
-                as={NextLink} // Use Next.js Link
-            >
-                View Details
-            </Button>
-        )}
+          <Button
+              size="sm"
+              variant="flat"
+              color="primary"
+              href={`/dashboard/rosca/${rosca.id}`} 
+              as={NextLink}
+          >
+              View Details
+          </Button>
       </CardFooter>
     </Card>
   );

@@ -40,6 +40,7 @@ function deriveStatus(raw: any): 'Pending' | 'Active' | 'Completed' {
 }
 
 function mapRosca(raw: any): Rosca {
+    console.log('Rosca', raw);
     const roundArray: any[] = Array.isArray(raw.rounds)
         ? raw.rounds
         : raw.rounds?.nodes ?? [];
@@ -85,6 +86,10 @@ export async function fetchEligibleRoscas(accountId: string): Promise<Rosca[]> {
     const { account } = await client.request<
         { account: { eligibleFor: { nodes: { parentRosca: any }[] } } }
     >(GET_ACCOUNT_ROSCAS, { accountId });
+
+    if (!account || !account.eligibleFor) {
+        return [];
+    }
 
     return account.eligibleFor.nodes.map(({ parentRosca }) =>
         mapRosca(parentRosca)

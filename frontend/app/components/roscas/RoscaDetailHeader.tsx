@@ -45,7 +45,17 @@ export default function RoscaDetailHeader({
         [rosca.eligibilities]
       );
 
-    const { currentAccount } = useWallet();
+    const { currentAccount,  } = useWallet();
+
+    if (!currentAccount) {
+      return (
+        <Card>
+          <CardBody>
+            <p className="text-sm text-default-500">Please connect your wallet to view or join this circle.</p>
+          </CardBody>
+        </Card>
+      );
+    }
     
     const hasMetThreshold = joinedAccounts.size >= rosca.minParticipants;
     const hasJoined = joinedAccounts.has(currentAccount?.address);
@@ -121,7 +131,7 @@ export default function RoscaDetailHeader({
                     onPress={() => onAction('join', () => joinRosca(rosca.roscaId))}
                     isLoading={actionLoading['join']}
                     >
-                    Join ROSCA
+                    Join Circle
                     </Button>
                 )}
 
@@ -133,7 +143,7 @@ export default function RoscaDetailHeader({
             onPress={() => onAction('start', () => startRosca(rosca.roscaId))}
             isLoading={actionLoading['start']}
           >
-            Start ROSCA
+            Start Circle
           </Button>
         )}
 

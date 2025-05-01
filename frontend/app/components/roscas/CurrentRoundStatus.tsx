@@ -37,8 +37,9 @@ export default function CurrentRoundStatus({
     }
 
     const isCurrentUserRecipient = currentRound.recipient === currentUserAddress;
+    const isExpectedContributor = currentRound.expectedContributors.includes(currentUserAddress);
     const hasContributed = currentRound.contributors?.includes(currentUserAddress);
-    const isContributionDue = !isCurrentUserRecipient && !hasContributed && BigInt(Math.floor(Date.now()/1000)) < currentRound.paymentCutoff;
+    const isContributionDue = !isCurrentUserRecipient && !hasContributed && isExpectedContributor && BigInt(Math.floor(Date.now()/1000)) < currentRound.paymentCutoff;
 
     return (
         <Card>
