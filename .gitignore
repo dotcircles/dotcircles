@@ -36,3 +36,8 @@
 # typescript
 /frontend/*.tsbuildinfo
 /frontend/next-env.d.ts
+
+
+/frontend/legacy
+
+notes.md
