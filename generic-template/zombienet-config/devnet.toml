@@ -1,0 +1,90 @@
+[relaychain]
+chain = "rococo-local"
+default_command = "./bin-stable-2409/polkadot"
+
+[[relaychain.nodes]]
+name = "alice"
+validator = true
+rpc_port = 8800
+
+[[relaychain.nodes]]
+name = "bob"
+validator = true
+
+[[parachains]]
+id = 1000
+add_to_genesis = true
+cumulus_based = true
+chain = "asset-hub-rococo-local"
+
+    [[parachains.collators]]
+    name = "asset-hub-rococo-collator01"
+    command = "./bin-stable-2409/polkadot-parachain"
+    rpc_port = 8810
+    args = ["-lxcm=trace,pallet-assets=trace"]
+
+    [[parachains.collators]]
+    name = "asset-hub-rococo-collator02"
+    command = "./bin-stable-2409/polkadot-parachain"
+    rpc_port = 8811
+    args = ["--log=xcm=trace,pallet-assets=trace"]
+
+    [parachains.genesis.runtimeGenesis.patch.assets]
+    accounts = [
+        [1984, "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1000000000000],
+        [1984, "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty", 1000000000000],
+        [1337, "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1000000000000],
+        [1337, "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty", 1000000000000]
+    ]
+    assets = [
+        [
+            1984,
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            true,
+            1
+        ],
+        [
+            1337,
+            "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+            true,
+            1
+        ]
+    ]
+    metadata = [
+        [
+            1984,
+            [84, 101, 116, 104, 101, 114, 32, 85, 83, 68], # "Tether USD" as ASCII array
+            [85, 83, 68, 84], # "USDT" as ASCII array
+            6
+        ],
+        [
+            1337,
+            [85, 83, 68, 32, 67, 111, 105, 110], # "USD Coin" as ASCII array
+            [85, 83, 68, 67], # "USDC" as ASCII array
+            6
+        ]
+    ]
+
+[[parachains]]
+id = 2000
+addToGenesis = true
+cumulus_based = true
+chain = "dev"
+
+[[parachains.collators]]
+name = "collator01"
+command = "./target/release/generic-template-node"
+rpc_port = 8820
+args = ["--rpc-max-connections 10000 --state-pruning=archive --blocks-pruning=archive"]
+
+[[parachains.collators]]
+name = "collator02"
+rpc_port = 8821
+command = "./target/release/generic-template-node"
+args = ["--rpc-max-connections 10000"]
+
+
+[relaychain.runtime_genesis_patch.balances]
+balances = [
+    ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1152921504606846976],
+]

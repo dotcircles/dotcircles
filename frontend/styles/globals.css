@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 .hexagon-container {
     position: relative;
     width: 100px; /* Adjust size as needed for your header */

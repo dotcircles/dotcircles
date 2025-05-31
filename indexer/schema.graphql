@@ -1,0 +1,56 @@
+type Rosca @entity{
+  id: ID!
+  roscaId: Int!
+  name: String!
+  creator: String!
+  paymentAsset: String!
+  randomOrder: Boolean!
+  totalParticipants: Int!
+  minParticipants: Int!
+  contributionAmount: BigInt!
+  contributionFrequency: BigInt!
+  startTimestamp: BigInt!
+  completed: Boolean!
+  eligibleParticipants: [String!]!
+  eligibilities: [RoscaEligibility!]! @derivedFrom(field:"parentRosca")
+  activeParticipants: [String!]!
+  startedBy: String
+  rounds:[Round!]! @derivedFrom(field:"parentRosca")
+  securityDeposits: [SecurityDeposit!]! @derivedFrom(field: "parentRosca")
+  totalSecurityDeposits: Int!
+  currentRecipient: String
+  currentRoundNumber: Int!
+  currentRoundPaymentCutoff: BigInt
+
+}
+
+type Round @entity{
+  id:ID!
+  parentRosca:Rosca! @index
+  chainRoscaId:Int!
+  roundNumber:Int!
+  paymentCutoff:BigInt!
+  expectedContributors:[String!]!
+  recipient:String! @index
+  defaulters:[String!]!
+  actualContributors: [String!]!
+}
+
+type Account @entity {
+  id: ID!
+  eligibleFor: [RoscaEligibility!]! @derivedFrom(field: "account")
+}
+
+type RoscaEligibility @entity {
+  id: ID!
+  parentRosca: Rosca!
+  account: Account!
+  joinedAt: BigInt
+}
+
+type SecurityDeposit @entity {
+  id: ID!
+  parentRosca: Rosca!
+  depositor: Account!
+  amount: Int!
+}
